@@ -1,0 +1,2350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>公众号编辑器</title>
+<style>
+  @font-face {
+    font-family: "ChillDIN";
+    src:
+      local("ChillDINGothic Std"),
+      local("寒蝉德黑体 Std"),
+      url("./paradaily-assets/ChillDINGothic_Std.woff2") format("woff2"),
+      url("https://raw.githubusercontent.com/Warren2060/ChillDIN-ChillDINGothic/main/ChillDINGothic%20v1.300_Std/ChillDINGothic_Std.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 500 700;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "ChillGSans";
+    src:
+      local("Chill G Sans Medium"),
+      local("寒蝉高黑体"),
+      url("./paradaily-assets/ChillGSans.woff2") format("woff2"),
+      url("https://raw.githubusercontent.com/Warren2060/ChillGSans/main/ChillGSans.otf") format("opentype");
+    font-style: normal;
+    font-weight: 500 700;
+    font-display: swap;
+  }
+  :root {
+    --obsidian: #0D0D0D;
+    --museum-white: #F2EFE8;
+    --archive-gray: #8A8A8A;
+    --museum-red: #9E2A2B;
+    --ui-bg: #141414;
+    --ui-panel: #1c1c1c;
+    --ui-border: #2e2e2e;
+    --ui-text: #e8e8e8;
+    --ui-dim: #8a8a8a;
+    --paper: #FFFFFF;
+    --ink: rgb(32, 32, 32);
+    --part-accent: #2C2C2C;
+    --rule: #C8C8C8;
+    --phone-w: 430px;
+    --page-pad: 28px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--ui-bg);
+    color: var(--ui-text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  header.app-bar {
+    padding: 18px 26px;
+    border-bottom: 1px solid var(--ui-border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  header.app-bar .mark { width: 72px; height: 28px; object-fit: contain; filter: invert(1); }
+  header.app-bar h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.5px; margin: 0; }
+  header.app-bar h1 span { color: var(--ui-dim); font-weight: 400; margin-left: 8px; font-size: 13px; }
+  .layout { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+  .controls {
+    width: 340px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--ui-border);
+    overflow-y: auto;
+    padding: 22px 22px 60px;
+    height: 100%;
+  }
+  .group { margin-bottom: 26px; }
+  .group > .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--ui-dim);
+    margin-bottom: 12px;
+    display: block;
+  }
+  textarea, input[type=text] {
+    width: 100%;
+    background: var(--ui-panel);
+    border: 1px solid var(--ui-border);
+    color: var(--ui-text);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    font-family: inherit;
+    resize: vertical;
+  }
+  textarea { min-height: 220px; }
+  textarea:focus, input[type=text]:focus { outline: none; border-color: #555; }
+  .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+  .row label { font-size: 13px; color: #cfcfcf; flex-shrink: 0; }
+  .seg { display: flex; background: var(--ui-panel); border: 1px solid var(--ui-border); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    flex: 1; background: transparent; border: none; color: var(--ui-dim);
+    padding: 8px 0; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .seg button.active { background: #2c2c2c; color: #fff; }
+  .file-btn, .action {
+    display: block; width: 100%; text-align: center; cursor: pointer;
+    background: var(--ui-panel); border: 1px solid var(--ui-border);
+    color: var(--ui-text); border-radius: 8px; padding: 11px; font-size: 13px;
+    font-family: inherit; margin-top: 8px;
+  }
+  .file-btn:hover, .action:hover { border-color: #555; }
+  .action.primary { background: var(--museum-white); color: #111; border-color: var(--museum-white); font-weight: 600; }
+  .action.primary:hover { background: #fff; }
+  input[type=file] { display: none; }
+  .hint { font-size: 11px; color: var(--ui-dim); margin-top: 8px; line-height: 1.5; }
+  .markdown-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .markdown-toolbar button {
+    min-width: 34px; height: 31px; padding: 0 9px;
+    border: 1px solid var(--ui-border); border-radius: 7px;
+    background: var(--ui-panel); color: #cfcfcf;
+    font: 600 12px/1 inherit; cursor: pointer;
+  }
+  .markdown-toolbar button:hover { border-color: #666; color: #fff; }
+  .draft-status { margin-left: auto; color: var(--ui-dim); font-size: 12px; white-space: nowrap; }
+  .draft-status.saved { color: #92b39b; }
+  .draft-status.error { color: #e08c8c; }
+  .locked-note {
+    padding: 12px 14px;
+    border: 1px dashed #3a3a3a;
+    border-radius: 8px;
+    color: #b9b3a8;
+    font-size: 12px;
+    line-height: 1.65;
+    background: #191919;
+  }
+
+  .stage {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow: auto;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 1px 1px, #222 1px, transparent 0) 0 0 / 22px 22px,
+      var(--ui-bg);
+  }
+  .preview-wrap { transform-origin: top center; }
+
+  .phone {
+    width: var(--phone-w);
+    background: #ededed;
+    border-radius: 28px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.45);
+    overflow: hidden;
+    border: 1px solid #2a2a2a;
+  }
+  .phone-bar {
+    height: 44px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 12px;
+    color: #111;
+    border-bottom: 1px solid #eee;
+  }
+  .phone-bar b { font-weight: 650; letter-spacing: 0.2px; }
+
+  .wx-chrome {
+    color-scheme: only light;
+    forced-color-adjust: none;
+    background: var(--paper);
+    padding: 20px 0 8px;
+  }
+  .wx-native-title {
+    margin: 0 16px 10px;
+    font-family: "ChillDIN", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 22px;
+    line-height: 1.35;
+    font-weight: 500;
+    color: #1a1a1a;
+    letter-spacing: 0.2px;
+  }
+  .wx-meta {
+    margin: 0 16px 18px;
+    font-size: 12px;
+    color: #606060;
+  }
+  .wx-meta .origin { color: #576b95; margin-right: 8px; }
+
+  #wxArticle {
+    color-scheme: only light;
+    forced-color-adjust: none;
+    background-color: var(--paper);
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='linear' slope='0.045'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-repeat: repeat;
+    padding-bottom: 96px;
+    color: var(--ink);
+    font-family: "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    font-weight: 300;
+  }
+
+  .wx-cover { margin: 0 0 18px; }
+  .wx-cover img { display: block; width: 100%; height: auto; }
+
+  .wx-body { padding: 4px 0 8px; }
+  .wx-body p,
+  .wx-body ul,
+  .wx-body ol,
+  .wx-body pre,
+  .wx-body table {
+    margin: 0 var(--page-pad) 1.1em;
+    font-size: 16px;
+    line-height: 1.75em;
+    letter-spacing: 0.034em;
+    color: var(--ink);
+    text-align: justify;
+    font-weight: 300;
+  }
+  .wx-body p:last-child,
+  .wx-body .article-figure:last-child { margin-bottom: 0; }
+  .wx-body strong { font-weight: 500; }
+  .wx-body em { font-style: italic; }
+  .wx-body a { color: #576b95; text-decoration: none; }
+  .wx-body .wx-comment-line {
+    border-bottom: 1px dashed rgb(136, 136, 136);
+    padding-bottom: 1px;
+  }
+  .wx-body .small-muted {
+    display: block;
+    color: rgb(96, 96, 96);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    text-align: center;
+    font-weight: 400;
+  }
+  .wx-body p.wx-layer-quote {
+    margin: 1.4em var(--page-pad) 0.95em;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: rgb(112, 112, 112);
+    font-size: 13px;
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.85em;
+    letter-spacing: 0.03em;
+    text-align: left;
+  }
+  .wx-body p.wx-layer-quote .wx-qmark {
+    font-style: normal;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 0;
+    color: rgb(112, 112, 112);
+    margin-right: 0.12em;
+  }
+  .wx-body p.wx-layer-quote .wx-quote-text {
+    display: inline;
+  }
+  .wx-body .wx-hr + p.wx-layer-quote,
+  .wx-body h2 + p.wx-layer-quote,
+  .wx-body h3 + p.wx-layer-quote {
+    margin-top: 0.55em;
+  }
+  .wx-body p.wx-layer-trans,
+  .wx-body p.wx-layer-note {
+    line-height: 1.95em;
+  }
+  .wx-body p.wx-layer-trans {
+    margin: 0 var(--page-pad) 1em;
+  }
+  .wx-body p.wx-layer-note {
+    margin: 0 var(--page-pad) 1.65em;
+  }
+  .wx-body .wx-label {
+    font-style: normal;
+    font-weight: 500;
+    font-size: 16px;
+    color: var(--part-accent);
+    letter-spacing: 0.034em;
+    margin-right: 0.2em;
+  }
+  .wx-body ul, .wx-body ol { padding-left: 1.2em; }
+  .wx-body li { margin: 0 0 0.35em; }
+  .wx-body pre {
+    white-space: pre-wrap;
+    font-size: 13px;
+    line-height: 1.5;
+    background: rgba(0,0,0,.04);
+    padding: 12px 14px;
+    border-radius: 4px;
+  }
+  .wx-body table {
+    width: calc(100% - 2 * var(--page-pad));
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .wx-body th, .wx-body td {
+    border: 1px solid rgba(0,0,0,.12);
+    padding: 8px 10px;
+    text-align: left;
+  }
+  .wx-hr {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 32px var(--page-pad);
+    height: 1px;
+    font-size: 0;
+    line-height: 0;
+    color: transparent;
+  }
+  .wx-hr .wx-hr-rule {
+    display: block;
+    width: 32px;
+    height: 0;
+    border: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .wx-body h2.wx-h2 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 18px;
+    margin: 1.5em var(--page-pad) 0.75em;
+    color: #111;
+    text-align: left;
+  }
+  .wx-body h2.wx-h2 .wx-h2-num {
+    flex: 0 0 auto;
+    font-family: "ChillDIN", "ChillGSans", "PingFang SC", sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+  }
+  .wx-body h2.wx-h2 .wx-h2-title {
+    flex: 1 1 auto;
+    font-family: "ChillGSans", "ChillDIN", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: 0.08em;
+    text-align: right;
+  }
+  .wx-body h3.wx-h3 {
+    margin: 1.2em var(--page-pad) 0.55em;
+    font-family: "ChillGSans", "ChillDIN", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    color: #111;
+    text-align: left;
+  }
+
+  .wx-body .article-figure {
+    margin: 0 0 18px;
+    width: 100%;
+    max-width: 100%;
+    cursor: pointer;
+    position: relative;
+  }
+  .wx-body .article-figure[data-align="left"] { margin-left: 0; margin-right: auto; }
+  .wx-body .article-figure[data-align="center"] { margin-left: auto; margin-right: auto; }
+  .wx-body .article-figure[data-align="right"] { margin-left: auto; margin-right: 0; }
+  .wx-body .article-figure.is-selected {
+    outline: 3px solid #a57b43;
+    outline-offset: 4px;
+  }
+  .wx-body .article-figure .image-plate {
+    width: 100%;
+    aspect-ratio: var(--article-image-ratio, auto);
+    overflow: hidden;
+    background: rgba(0,0,0,.04);
+  }
+  .wx-body .article-figure img {
+    display: block; width: 100%; height: 100%; object-fit: cover;
+  }
+  .wx-body .article-figure[data-ratio="original"] .image-plate { aspect-ratio: auto; }
+  .wx-body .article-figure[data-ratio="original"] img { height: auto; object-fit: contain; }
+  .wx-body .article-figure figcaption {
+    margin: 8px var(--page-pad) 0;
+    color: rgb(96,96,96);
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .wx-body p.wx-figure-note {
+    margin: 1.7em var(--page-pad);
+    padding: 16px 4px;
+    border: 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    color: rgb(112, 112, 112);
+    font-size: 12px;
+    font-weight: 300;
+    font-style: normal;
+    line-height: 1.7em;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+  .wx-body p.wx-figure-note .wx-figure-note-kicker {
+    display: block;
+    margin: 0 0 8px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    color: rgb(44, 44, 44);
+  }
+  .wx-body p.wx-figure-note .wx-figure-note-text {
+    display: block;
+  }
+  .wx-body .article-gallery {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(var(--article-gallery-columns, 2), minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 var(--page-pad) 18px;
+  }
+  .wx-body .article-gallery .article-figure { width: 100%; margin: 0; }
+  .wx-body .article-gallery figcaption { margin: 8px 8px 0; }
+  .wx-body .article-figure.missing .image-plate {
+    min-height: 80px; display: flex; align-items: center; justify-content: center;
+    color: #888; font-size: 12px;
+  }
+
+  .wx-cta {
+    margin: 36px var(--page-pad) 0;
+    padding-top: 0;
+    border-top: none;
+    text-align: center;
+    background: var(--paper);
+  }
+  .wx-cta .cta-brand {
+    display: block;
+    width: 118px;
+    height: auto;
+    margin: 0 auto 16px;
+  }
+  .wx-cta .cta-brand-hand {
+    width: 168px;
+    cursor: pointer;
+  }
+  .wx-cta .cta-pair {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .wx-cta .cta-pair a {
+    flex: 1 1 0;
+    min-width: 0;
+    color: #111;
+    text-decoration: none;
+    line-height: 0;
+  }
+  .wx-cta .cta-pair a img {
+    display: block;
+    width: 100%;
+    max-width: 230px;
+    height: auto;
+    margin: 0 auto;
+  }
+  .image-editor {
+    position: fixed; right: 22px; bottom: 22px; z-index: 30;
+    width: min(390px, calc(100vw - 44px));
+    padding: 16px;
+    border: 1px solid #3a3a3a; border-radius: 14px;
+    background: rgba(20,20,20,0.96);
+    box-shadow: 0 18px 58px rgba(0,0,0,0.46);
+    backdrop-filter: blur(18px);
+  }
+  .image-editor[hidden] { display: none; }
+  .image-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .image-editor-title { min-width: 0; font-size: 13px; font-weight: 650; color: #fff; }
+  .image-editor-title span { display: block; margin-top: 3px; color: var(--ui-dim); font-size: 10px; font-weight: 400; }
+  .image-editor-close {
+    width: 30px; height: 30px; border: 1px solid var(--ui-border); border-radius: 50%;
+    background: transparent; color: #aaa; cursor: pointer; font: 18px/1 inherit;
+  }
+  .image-editor-row { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 10px; margin-top: 10px; }
+  .image-editor-row > label { color: #aaa; font-size: 11px; }
+  .image-editor-options {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; overflow: hidden;
+    border: 1px solid var(--ui-border); border-radius: 8px; background: #191919;
+  }
+  .image-editor-options button {
+    min-width: 0; padding: 8px 5px; border: 0; border-right: 1px solid var(--ui-border);
+    background: transparent; color: #888; cursor: pointer;
+    font: 11px/1 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  }
+  .image-editor-options button:last-child { border-right: 0; }
+  .image-editor-options button.active { background: #f2efe8; color: #17120d; font-weight: 650; }
+  .image-editor-status { min-height: 17px; margin: 11px 0 0 68px; color: #a68b68; font-size: 10px; }
+</style>
+</head>
+<body>
+<header class="app-bar">
+  <img class="mark" id="appMark" alt="" />
+  <h1><span data-brand-name>Your Brand</span><span>公众号编辑器</span></h1>
+  <span class="draft-status" id="draftStatus">本地自动保存</span>
+</header>
+
+<div class="layout">
+  <aside class="controls">
+    <div class="group">
+      <span class="label">文章标题</span>
+      <input type="text" id="articleTitle" placeholder="显示在公众号阅读页顶部" value="一则被更多人看见的消息" />
+    </div>
+
+    <div class="group">
+      <span class="label">正文（支持 Markdown）</span>
+      <div class="markdown-toolbar" id="markdownToolbar">
+        <button type="button" data-action="h2" title="插入二级标题：左边自动编号，右边写短标题">章节</button>
+        <button type="button" data-action="hr" title="插入分隔线">分隔线</button>
+        <button type="button" data-action="small-muted" title="把选中文字设为小灰字">小灰字</button>
+        <button type="button" data-action="comment-line" title="虚线划线，读者可点这段留言">划线留言</button>
+      </div>
+      <p class="hint">选中文字再点「划线留言」，或手写 ++这段话++。复制进公众号后是灰色虚线；账号开了留言，读者可点这段评论。</p>
+      <textarea id="text">在这里写下正文。支持 Markdown。
+
+—
+
+## 章节标题
+
+选中文字再点「划线留言」，复制进公众号后读者可点这段评论。
+
+^^采访、撰文：编辑部^^</textarea>
+      <label class="file-btn" for="articleImageFile">上传正文图片并插入到光标处</label>
+      <input type="file" id="articleImageFile" accept="image/*" multiple />
+      <p class="hint">可一次选择多张。插入后点击预览中的图片，可调宽度、比例、对齐和并排。</p>
+    </div>
+
+    <div class="group">
+      <span class="label">封面图（可选）</span>
+      <textarea id="coverTitle" rows="3" placeholder="叠在封面图下沿的大标题" style="min-height:72px"></textarea>
+      <textarea id="coverSubtitle" rows="2" placeholder="副标题 / 署名（可选）" style="margin-top:8px;min-height:56px"></textarea>
+      <div class="row" style="margin-top:14px">
+        <label>图片焦点</label>
+        <div class="seg" id="coverFocusSeg">
+          <button data-v="top">顶部</button>
+          <button data-v="center" class="active">居中</button>
+          <button data-v="bottom">底部</button>
+        </div>
+      </div>
+      <label class="file-btn" for="coverFile">上传封面照片</label>
+      <input type="file" id="coverFile" accept="image/*" />
+      <button class="action" id="clearCover" type="button">清除封面</button>
+      <p class="hint">封面效仿 GQ：大图铺满，Logo 在顶，标题叠在下沿。没有封面图时，只保留公众号原生标题。</p>
+    </div>
+
+    <div class="group">
+      <span class="label">文末 Logo</span>
+      <div class="row">
+        <label>样式</label>
+        <div class="seg" id="ctaLogoSeg">
+          <button type="button" data-v="mark" class="active">现用标志</button>
+          <button type="button" data-v="hand">手写动画</button>
+        </div>
+      </div>
+      
+      <label class="file-btn" for="logoFile">上传自己的 Logo</label>
+      <input type="file" id="logoFile" accept="image/*" />
+      <p class="hint">默认读取 <code>brand/logo.svg</code>。上传后只保存在这台电脑的浏览器里。手写动画需要自己提供 GIF，放到 <code>brand/logo-hand.gif</code> 并在 config.js 里填写 logoHand。</p>
+
+    </div>
+
+    <div class="group">
+      <span class="label">锁定版式</span>
+      <div class="locked-note">
+        正文字号 16px · 行高 1.75 · 两端对齐 · 左右 28px<br>
+        纸纹近白底 · 二级标题左编号右短标题<br>
+        引用缩小 · 墨色标签 · 浅灰短分割线<br>
+        文末 Logo 可切换 · 小红书 ｜ 邮箱
+      </div>
+    </div>
+
+    <div class="group">
+      <span class="label">本地草稿</span>
+      <button class="action" id="clearDraft">清空当前草稿</button>
+      <p class="hint">正文、封面和图片只保存在这台电脑的浏览器中。</p>
+    </div>
+
+    <div class="group">
+      <span class="label">导出</span>
+      <button class="action primary" id="export">复制公众号 HTML</button>
+      <button class="action" id="exportCover">复制封面图</button>
+      <p class="hint" id="exportHint">复制后粘贴进微信公众号后台。若封面没出现，再点「复制封面图」，在正文最上方粘贴一次。</p>
+    </div>
+  </aside>
+
+  <div class="stage">
+    <div class="preview-wrap" id="previewWrap">
+      <div class="phone">
+        <div class="phone-bar"><span>〈</span><b data-brand-name>Your Brand</b><span>⋯</span></div>
+        <div class="wx-chrome">
+          <h1 class="wx-native-title" id="wxNativeTitle">未命名文章</h1>
+          <div class="wx-meta"><span class="origin">原创</span><span data-brand-name>Your Brand</span>　<span id="wxDate"></span></div>
+        </div>
+        <div id="wxArticle"></div>
+      </div>
+    </div>
+    <section class="image-editor" id="imageEditor" hidden>
+      <div class="image-editor-head">
+        <div class="image-editor-title">图片排版<span id="imageEditorName">未选择图片</span></div>
+        <button class="image-editor-close" id="closeImageEditor" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="image-editor-row">
+        <label>宽度</label>
+        <div class="image-editor-options" data-image-control="width">
+          <button type="button" data-value="100">100%</button>
+          <button type="button" data-value="75">75%</button>
+          <button type="button" data-value="50">50%</button>
+          <button type="button" data-value="33">33%</button>
+        </div>
+      </div>
+      <div class="image-editor-row">
+        <label>比例</label>
+        <div class="image-editor-options" data-image-control="ratio">
+          <button type="button" data-value="original">原图</button>
+          <button type="button" data-value="16/10">16:10</button>
+          <button type="button" data-value="4/3">4:3</button>
+          <button type="button" data-value="1/1">1:1</button>
+        </div>
+      </div>
+      <div class="image-editor-row">
+        <label>对齐</label>
+        <div class="image-editor-options" data-image-control="align">
+          <button type="button" data-value="left">靠左</button>
+          <button type="button" data-value="center">居中</button>
+          <button type="button" data-value="right">靠右</button>
+        </div>
+      </div>
+      <div class="image-editor-row">
+        <label>并排</label>
+        <div class="image-editor-options" data-image-control="group">
+          <button type="button" data-value="1">单张</button>
+          <button type="button" data-value="2">两张</button>
+          <button type="button" data-value="3">三张</button>
+        </div>
+      </div>
+      <p class="image-editor-status" id="imageEditorStatus"></p>
+    </section>
+  </div>
+</div>
+
+<script src="brand/config.js"></script>
+<script>
+
+  const BRAND = Object.assign({
+    name: 'Your Brand',
+    logo: 'brand/logo.svg',
+    logoAlt: 'brand/logo-alt.svg',
+    logoHand: '',
+    siteUrl: 'https://example.com',
+    email: 'hello@example.com',
+    xhsUrl: 'https://www.xiaohongshu.com/',
+    xhsHandle: 'YourBrand',
+    markPrimaryLabel: '主标识',
+    markSecondaryLabel: '备选标识'
+  }, window.BRAND || {});
+  function applyBrandChrome() {
+    document.querySelectorAll('[data-brand-name]').forEach(el => { el.textContent = BRAND.name; });
+    document.querySelectorAll('img.mark, img.logo-mark').forEach(el => {
+      if (!el.getAttribute('src') || el.getAttribute('src').startsWith('data:') || el.getAttribute('src') === 'brand/logo.svg' || el.id === 'appMark') {
+        el.src = BRAND.logo;
+      }
+      el.alt = BRAND.name;
+    });
+    const primaryBtn = document.querySelector('#footerBrandSeg [data-v="paradaily"]');
+    const altBtn = document.querySelector('#footerBrandSeg [data-v="academy"]');
+    if (primaryBtn) primaryBtn.textContent = BRAND.markPrimaryLabel;
+    if (altBtn) altBtn.textContent = BRAND.markSecondaryLabel;
+  }
+  document.addEventListener('DOMContentLoaded', applyBrandChrome);
+
+  const $ = (id) => document.getElementById(id);
+  const articleRoot = $('wxArticle');
+  let LOGO_SRC = BRAND.logo;
+  const SITE_URL = BRAND.siteUrl;
+  const XHS_URL = BRAND.xhsUrl;
+  const EMAIL = BRAND.email;
+  const P_STYLE = 'margin: 0 28px 1.1em; font-size: 16px; line-height: 1.75em; letter-spacing: 0.034em; color: rgb(32, 32, 32); text-align: justify; font-weight: 300; font-family: PingFangSC-Light, PingFangSC, HiraginoSansGB-W3, HelveticaNeue-Light, Microsoft YaHei, sans-serif;';
+  const HEAD_FONT = '"ChillDIN", "PingFang SC", "Hiragino Sans GB", sans-serif';
+  const BODY_FONT = '"PingFang SC", "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans SC", "Helvetica Neue", sans-serif';
+  const CTA_FONT = '"ChillGSans", "ChillDIN", "PingFang SC", sans-serif';
+  const THEME = {
+    light: { paper: '#FFFFFF', ink: '#111111' },
+    dark: { paper: '#FFFFFF', ink: '#111111' }
+  };
+  const PAPER = '#FFFFFF';
+  const INK = '#111111';
+  const PAGE_W = 430;
+  const PAGE_PAD = 28;
+  const BAKE_SCALE = 3;
+  const BODY_CANVAS_FONT = 'PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif';
+  function themeOf(name) {
+    return THEME[name] || THEME.light;
+  }
+  function paperCanvas(w, h) {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(w));
+    canvas.height = Math.max(1, Math.round(h));
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    if (ctx.imageSmoothingQuality) ctx.imageSmoothingQuality = 'high';
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    return { canvas, ctx };
+  }
+  function jpegSrc(canvas, quality) {
+    return canvas.toDataURL('image/jpeg', quality == null ? 0.92 : quality);
+  }
+  const PAPER_TILE_URL = 'https://mmbiz.qpic.cn/mmbiz_jpg/OBQWTDeVLCNCZEJMPoaoOrbNNYTBwNfZicicejRfztnZsVniboVourPH9LFTDbARp01SATXpjbXJ9g2QAtB1C5dNw/640?wx_fmt=jpeg';
+  function gifBytesToDataUrl(bytes) {
+    let binary = '';
+    const step = 0x8000;
+    for (let i = 0; i < bytes.length; i += step) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + step));
+    }
+    return 'data:image/gif;base64,' + btoa(binary);
+  }
+  function lzwGif(pixels, minCodeSize) {
+    const clear = 1 << minCodeSize;
+    const eoi = clear + 1;
+    let codeSize = minCodeSize + 1;
+    let nextCode = eoi + 1;
+    const dict = new Map();
+    const reset = () => {
+      dict.clear();
+      for (let i = 0; i < clear; i++) dict.set(String.fromCharCode(i), i);
+      codeSize = minCodeSize + 1;
+      nextCode = eoi + 1;
+    };
+    reset();
+    const out = [];
+    let acc = 0;
+    let nbits = 0;
+    const write = (code) => {
+      acc |= code << nbits;
+      nbits += codeSize;
+      while (nbits >= 8) {
+        out.push(acc & 255);
+        acc >>= 8;
+        nbits -= 8;
+      }
+    };
+    write(clear);
+    let w = String.fromCharCode(pixels[0] || 0);
+    for (let i = 1; i < pixels.length; i++) {
+      const c = String.fromCharCode(pixels[i]);
+      const wc = w + c;
+      if (dict.has(wc)) w = wc;
+      else {
+        write(dict.get(w));
+        if (nextCode < 4096) {
+          dict.set(wc, nextCode);
+          if (nextCode === (1 << codeSize) && codeSize < 12) codeSize += 1;
+          nextCode += 1;
+        } else {
+          write(clear);
+          reset();
+        }
+        w = c;
+      }
+    }
+    write(dict.get(w));
+    write(eoi);
+    if (nbits > 0) out.push(acc & 255);
+    const packed = [minCodeSize];
+    for (let i = 0; i < out.length; i += 255) {
+      const n = Math.min(255, out.length - i);
+      packed.push(n);
+      for (let j = 0; j < n; j++) packed.push(out[i + j]);
+    }
+    packed.push(0);
+    return packed;
+  }
+  function hexRgb(hex) {
+    const value = String(hex || '').replace('#', '');
+    return [0, 2, 4].map(offset => parseInt(value.slice(offset, offset + 2), 16));
+  }
+  function canvasToPaperGif(canvas, theme) {
+    const colors = themeOf(theme);
+    const paper = hexRgb(colors.paper);
+    const ink = hexRgb(colors.ink);
+    const w = canvas.width;
+    const h = canvas.height;
+    const src = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+    const palCount = 16;
+    const palette = new Uint8Array(palCount * 3);
+    palette[0] = paper[0]; palette[1] = paper[1]; palette[2] = paper[2];
+    for (let i = 1; i < palCount; i++) {
+      const t = i / (palCount - 1);
+      palette[i * 3] = Math.round(ink[0] + t * (paper[0] - ink[0]));
+      palette[i * 3 + 1] = Math.round(ink[1] + t * (paper[1] - ink[1]));
+      palette[i * 3 + 2] = Math.round(ink[2] + t * (paper[2] - ink[2]));
+    }
+    palette[3] = ink[0]; palette[4] = ink[1]; palette[5] = ink[2];
+    const indexed = new Uint8Array(w * h);
+    for (let p = 0, i = 0; p < indexed.length; p++, i += 4) {
+      const r = src[i];
+      const g = src[i + 1];
+      const b = src[i + 2];
+      let best = 0;
+      let bestD = 1e9;
+      for (let k = 0; k < palCount; k++) {
+        const dr = r - palette[k * 3];
+        const dg = g - palette[k * 3 + 1];
+        const db = b - palette[k * 3 + 2];
+        const d = dr * dr + dg * dg + db * db;
+        if (d < bestD) { bestD = d; best = k; }
+      }
+      indexed[p] = best;
+    }
+    const packedSize = 4;
+    const head = [71, 73, 70, 56, 57, 97, w & 255, w >> 8, h & 255, h >> 8, 0x80 | 0x70 | (packedSize - 1), 0, 0];
+    const pal = Array.from(palette);
+    const desc = [0x2C, 0, 0, 0, 0, w & 255, w >> 8, h & 255, h >> 8, 0];
+    const lzw = lzwGif(indexed, packedSize);
+    const bytes = Uint8Array.from(head.concat(pal, desc, lzw, [0x3B]));
+    return gifBytesToDataUrl(bytes);
+  }
+  const paperTileCache = {};
+  function paperTileSrc(theme) {
+    const name = theme === 'dark' ? 'dark' : 'light';
+    if (paperTileCache[name]) return paperTileCache[name];
+    const colors = themeOf(name);
+    const canvas = document.createElement('canvas');
+    canvas.width = 8;
+    canvas.height = 8;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = colors.paper;
+    ctx.fillRect(0, 0, 8, 8);
+    paperTileCache[name] = canvasToPaperGif(canvas, name);
+    return paperTileCache[name];
+  }
+  function fixedPaperStyle() {
+    return 'background-image:url(' + PAPER_TILE_URL + ');background-position:0% 0%;background-repeat:repeat-y;background-size:100%;background-attachment:scroll;box-sizing:border-box;';
+  }
+  let headFontReady = null;
+  async function ensureHeadFont() {
+    if (!document.fonts || !document.fonts.load) return;
+    if (headFontReady) return headFontReady;
+    headFontReady = Promise.all([
+        document.fonts.load('500 64px ChillDIN', 'PART 01 起点封面'),
+        document.fonts.load('700 64px ChillDIN', 'PART 01 起点封面'),
+        document.fonts.load('500 48px ChillGSans', '小红书邮箱联系我们 ' + BRAND.name),
+        document.fonts.load('500 72px ChillGSans', '起点 章节标题 解读'),
+        document.fonts.load('700 63px ChillGSans', '起点 章节标题 解读'),
+        document.fonts.load('700 96px ChillDIN', '01 02 03'),
+        document.fonts.load('700 84px ChillGSans', '起点 章节'),
+        document.fonts.load('700 220px ChillDIN', '封面大标题 起点')
+      ]).catch(() => {});
+    return headFontReady;
+  }
+
+  $('appMark').src = LOGO_SRC;
+
+  function bindLogoUpload() {
+    const input = $('logoFile');
+    if (!input) return;
+    input.addEventListener('change', (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        LOGO_SRC = reader.result;
+        $('appMark').src = LOGO_SRC;
+        render();
+        scheduleDraftSave();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  bindLogoUpload();
+
+
+  const XHS_ICON_SRC = makeXhsIconDataUrl();
+  const MAIL_ICON_SRC = makeMailIconDataUrl();
+  let renderToken = 0;
+
+  let coverDataUrl = null;
+  let coverImageFocus = 'center';
+  let ctaLogoStyle = 'mark';
+  const HAND_GIF_SRC = BRAND.logoHand || BRAND.logo;
+  const HAND_ADAPTIVE_GIF_SRC = BRAND.logoHand || BRAND.logo;
+  const HAND_ANIM_SRC = HAND_GIF_SRC;
+  const HAND_STATIC_SRC = HAND_GIF_SRC;
+  let handReplayTimer = null;
+  let articleImageIndex = 0;
+  let articleImageGroupIndex = 0;
+  let selectedArticleImageId = null;
+  const articleImages = {};
+  const articleImageSettings = {};
+  const articleImageGroups = {};
+  const articleImageGroupById = {};
+
+  function todayLabel() {
+    const d = new Date();
+    return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+  $('wxDate').textContent = todayLabel();
+
+  function bindSeg(id, fn) {
+    document.querySelectorAll('#' + id + ' button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        fn(btn.dataset.v);
+      });
+    });
+  }
+  bindSeg('coverFocusSeg', v => { coverImageFocus = v; render(); });
+  bindSeg('ctaLogoSeg', v => {
+    ctaLogoStyle = v === 'hand' ? 'hand' : 'mark';
+    stopHandReplay();
+    render();
+  });
+
+  function isHorizontalRule(line) {
+    const trimmed = line.trim();
+    if (!trimmed) return false;
+    if (trimmed === '—' || trimmed === '－') return true;
+    if (trimmed.length < 3) return false;
+    const marker = trimmed[0];
+    if (marker === '-' || marker === '*' || marker === '_') {
+      if ([...trimmed].every(ch => ch === marker || ch === ' ')) return true;
+      const suffix = trimmed.match(/^([-*_])\1{2,}(?:\s*(.+))?$/);
+      if (!suffix) return false;
+      const label = (suffix[2] || '').trim();
+      return !label || /^(分割线|分隔线|divider|hr)$/i.test(label);
+    }
+    const fullWidth = trimmed.match(/^([－—])\1{2,}(?:\s*(.+))?$/);
+    if (fullWidth) {
+      const label = (fullWidth[2] || '').trim();
+      return !label || /^(分割线|分隔线)$/.test(label);
+    }
+    return false;
+  }
+  function makeHorizontalRule() {
+    const hr = document.createElement('div');
+    hr.className = 'wx-hr';
+    const rule = document.createElement('span');
+    rule.className = 'wx-hr-rule';
+    hr.appendChild(rule);
+    return hr;
+  }
+  function isFigureNoteLine(line) {
+    const text = String(line || '').trim().replace(/^\s*(?:>|＞)\s?/, '');
+    return /^📸/.test(text) || /^原文此处配有/.test(text);
+  }
+  function parseFigureNoteText(raw) {
+    let text = String(raw || '').replace(/^\s*(?:>|＞)\s?/, '').replace(/^📸\s*/, '').trim();
+    if (!text) return '';
+    text = text.replace(/^原文此处配有(?:一张|一组|一段)?/, '');
+    text = text.replace(/[。．]\s*$/, '');
+    return text.trim();
+  }
+  function makeFigureNote(raw) {
+    const text = parseFigureNoteText(raw);
+    if (!text) return null;
+    const p = document.createElement('p');
+    p.className = 'wx-figure-note';
+    const kicker = document.createElement('span');
+    kicker.className = 'wx-figure-note-kicker';
+    kicker.textContent = '图';
+    const body = document.createElement('span');
+    body.className = 'wx-figure-note-text';
+    appendInlineMarkdown(body, text);
+    p.append(kicker, body);
+    return p;
+  }
+  function appendInlineMarkdown(target, text) {
+    const tokens = /(\+\+[^+]+?\+\+|\^\^[^^\n]+\^\^|\*\*[^*]+\*\*|__[^_]+__|_[^_\n]+_|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^\s)]+\))/g;
+    let cursor = 0;
+    for (const match of text.matchAll(tokens)) {
+      target.append(document.createTextNode(text.slice(cursor, match.index)));
+      const token = match[0];
+      let el;
+      if (token.startsWith('++')) { el = document.createElement('span'); el.className = 'wx-comment-line'; el.textContent = token.slice(2, -2); }
+      else if (token.startsWith('^^')) { el = document.createElement('span'); el.className = 'small-muted'; el.textContent = token.slice(2, -2); }
+      else if (token.startsWith('**')) { el = document.createElement('strong'); el.textContent = token.slice(2, -2); }
+      else if (token.startsWith('__')) { el = document.createElement('u'); el.textContent = token.slice(2, -2); }
+      else if (token.startsWith('_')) { el = document.createElement('u'); el.textContent = token.slice(1, -1); }
+      else if (token.startsWith('*')) { el = document.createElement('em'); el.textContent = token.slice(1, -1); }
+      else if (token.startsWith('`')) { el = document.createElement('code'); el.textContent = token.slice(1, -1); }
+      else {
+        const link = token.match(/^\[([^\]]+)\]\(([^\s)]+)\)$/);
+        el = document.createElement('a'); el.textContent = link[1]; el.href = link[2]; el.target = '_blank'; el.rel = 'noreferrer';
+      }
+      target.append(el);
+      cursor = match.index + token.length;
+    }
+    target.append(document.createTextNode(text.slice(cursor)));
+  }
+  function makeParagraph(text) {
+    const p = document.createElement('p');
+    p.dataset.source = text;
+    appendInlineMarkdown(p, text);
+    return p;
+  }
+  function parseLabeledParagraph(text) {
+    const match = String(text || '').match(/^\*\*(翻译|解读|解析|延伸)[:：]\*\*\s*(.*)$/)
+      || String(text || '').match(/^(翻译|解读|解析|延伸)[:：]\s*(.*)$/);
+    if (!match) return null;
+    return { kind: match[1], body: match[2] || '' };
+  }
+  function isLabeledStart(line) {
+    return /^\*\*(翻译|解读|解析|延伸)[:：]\*\*/.test(line) || /^(翻译|解读|解析|延伸)[:：]/.test(line);
+  }
+  function makeLabeledParagraph(kind, body) {
+    const p = document.createElement('p');
+    p.className = kind === '翻译' ? 'wx-layer-trans' : 'wx-layer-note';
+    p.dataset.kind = kind;
+    const label = document.createElement('span');
+    label.className = 'wx-label';
+    label.textContent = kind + '：';
+    p.append(label, document.createTextNode(' '));
+    if (body) appendInlineMarkdown(p, body);
+    return p;
+  }
+  function makePreBlock(text, className = 'md-code-block') {
+    const pre = document.createElement('pre');
+    pre.className = className;
+    const code = document.createElement('code');
+    code.textContent = text.replace(/\n+$/, '');
+    pre.appendChild(code);
+    return pre;
+  }
+  function splitTableRow(line) {
+    return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim());
+  }
+  function isTableSeparator(line) {
+    const cells = splitTableRow(line);
+    return cells.length > 1 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
+  }
+  function isTableStart(lines, index) {
+    return index + 1 < lines.length && /\|/.test(lines[index]) && isTableSeparator(lines[index + 1]);
+  }
+  function makeTable(tableLines) {
+    const rows = tableLines.map(splitTableRow);
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    rows[0].forEach(cell => {
+      const th = document.createElement('th');
+      appendInlineMarkdown(th, cell);
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    rows.slice(2).forEach(row => {
+      const tr = document.createElement('tr');
+      const columnCount = rows[0].length;
+      for (let i = 0; i < columnCount; i++) {
+        const td = document.createElement('td');
+        appendInlineMarkdown(td, row[i] || '');
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
+  }
+  function isAsciiDiagramLine(line) {
+    return /[│└┘┌┐├┤┬┴┼─━▶→←●○◆■□▲△]/.test(line) ||
+      (/^\s{2,}\S/.test(line) && /[|/\\_.-]{2,}|[●○]/.test(line));
+  }
+  function parseListItem(line) {
+    const match = line.replace(/\t/g, '    ').match(/^(\s*)([-*+]|\d+[.)])\s+(.+)$/);
+    if (!match) return null;
+    return { indent: match[1].length, ordered: /^\d/.test(match[2]), text: match[3] };
+  }
+  function isListItemLine(line) { return Boolean(parseListItem(line)); }
+  function makeMarkdownList(listLines) {
+    const first = parseListItem(listLines[0]);
+    const root = document.createElement(first.ordered ? 'ol' : 'ul');
+    const stack = [{ indent: first.indent, ordered: first.ordered, list: root, lastItem: null }];
+    listLines.forEach(line => {
+      const item = parseListItem(line);
+      if (!item) return;
+      while (stack.length > 1 && item.indent < stack[stack.length - 1].indent) stack.pop();
+      let current = stack[stack.length - 1];
+      if (item.indent > current.indent) {
+        const nested = document.createElement(item.ordered ? 'ol' : 'ul');
+        if (current.lastItem) current.lastItem.appendChild(nested);
+        else current.list.appendChild(nested);
+        current = { indent: item.indent, ordered: item.ordered, list: nested, lastItem: null };
+        stack.push(current);
+      }
+      const li = document.createElement('li');
+      appendInlineMarkdown(li, item.text);
+      current.list.appendChild(li);
+      current.lastItem = li;
+    });
+    return root;
+  }
+  function getArticleImageSettings(imageId) {
+    if (!articleImageSettings[imageId]) {
+      articleImageSettings[imageId] = { width: '100', ratio: 'original', align: 'center' };
+    }
+    return articleImageSettings[imageId];
+  }
+  function applyArticleImageSettings(figure, imageId) {
+    const settings = getArticleImageSettings(imageId);
+    const ratio = settings.ratio === 'original' ? 'auto' : settings.ratio.replace('/', ' / ');
+    figure.dataset.align = settings.align;
+    figure.dataset.ratio = settings.ratio === 'original' ? 'original' : 'fixed';
+    figure.style.setProperty('--article-image-width', settings.width + '%');
+    figure.style.setProperty('--article-image-ratio', ratio);
+    figure.classList.toggle('is-selected', selectedArticleImageId === imageId);
+  }
+  function makeImageFigure(imageId, caption) {
+    const figure = document.createElement('figure');
+    figure.className = 'article-figure';
+    figure.dataset.imageId = imageId;
+    figure.tabIndex = 0;
+    applyArticleImageSettings(figure, imageId);
+    const plate = document.createElement('div');
+    plate.className = 'image-plate';
+    const dataUrl = articleImages[imageId];
+    if (dataUrl) {
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.alt = caption || '';
+      img.dataset.imageId = imageId;
+      plate.appendChild(img);
+    } else {
+      figure.classList.add('missing');
+      plate.textContent = '图片未加载：' + imageId;
+    }
+    figure.appendChild(plate);
+    if (caption) {
+      const figcaption = document.createElement('figcaption');
+      appendInlineMarkdown(figcaption, caption);
+      figure.appendChild(figcaption);
+    }
+    return figure;
+  }
+  function svgDataUri(svg) {
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+  function makeXhsIconDataUrl() {
+    return svgDataUri(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 24 24">' +
+      '<path fill="#111111" d="M22.405 9.879c.002.016.01.02.07.019h.725a.797.797 0 0 0 .78-.972.794.794 0 0 0-.884-.618.795.795 0 0 0-.692.794c0 .101-.002.666.001.777zm-11.509 4.808c-.203.001-1.353.004-1.685.003a2.528 2.528 0 0 1-.766-.126.025.025 0 0 0-.03.014L7.7 16.127a.025.025 0 0 0 .01.032c.111.06.336.124.495.124.66.01 1.32.002 1.981 0 .01 0 .02-.006.023-.015l.712-1.545a.025.025 0 0 0-.024-.036zM.477 9.91c-.071 0-.076.002-.076.01a.834.834 0 0 0-.01.08c-.027.397-.038.495-.234 3.06-.012.24-.034.389-.135.607-.026.057-.033.042.003.112.046.092.681 1.523.787 1.74.008.015.011.02.017.02.008 0 .033-.026.047-.044.147-.187.268-.391.371-.606.306-.635.44-1.325.486-1.706.014-.11.021-.22.03-.33l.204-2.616.022-.293c.003-.029 0-.033-.03-.034zm7.203 3.757a1.427 1.427 0 0 1-.135-.607c-.004-.084-.031-.39-.235-3.06a.443.443 0 0 0-.01-.082c-.004-.011-.052-.008-.076-.008h-1.48c-.03.001-.034.005-.03.034l.021.293c.076.982.153 1.964.233 2.946.05.4.186 1.085.487 1.706.103.215.223.419.37.606.015.018.037.051.048.049.02-.003.742-1.642.804-1.765.036-.07.03-.055.003-.112zm3.861-.913h-.872a.126.126 0 0 1-.116-.178l1.178-2.625a.025.025 0 0 0-.023-.035l-1.318-.003a.148.148 0 0 1-.135-.21l.876-1.954a.025.025 0 0 0-.023-.035h-1.56c-.01 0-.02.006-.024.015l-.926 2.068c-.085.169-.314.634-.399.938a.534.534 0 0 0-.02.191.46.46 0 0 0 .23.378.981.981 0 0 0 .46.119h.59c.041 0-.688 1.482-.834 1.972a.53.53 0 0 0-.023.172.465.465 0 0 0 .23.398c.15.092.342.12.475.12l1.66-.001c.01 0 .02-.006.023-.015l.575-1.28a.025.025 0 0 0-.024-.035zm-6.93-4.937H3.1a.032.032 0 0 0-.034.033c0 1.048-.01 2.795-.01 6.829 0 .288-.269.262-.28.262h-.74c-.04.001-.044.004-.04.047.001.037.465 1.064.555 1.263.01.02.03.033.051.033.157.003.767.009.938-.014.153-.02.3-.06.438-.132.3-.156.49-.419.595-.765.052-.172.075-.353.075-.533.002-2.33 0-4.66-.007-6.991a.032.032 0 0 0-.032-.032zm11.784 6.896c0-.014-.01-.021-.024-.022h-1.465c-.048-.001-.049-.002-.05-.049v-4.66c0-.072-.005-.07.07-.07h.863c.08 0 .075.004.075-.074V8.393c0-.082.006-.076-.08-.076h-3.5c-.064 0-.075-.006-.075.073v1.445c0 .083-.006.077.08.077h.854c.075 0 .07-.004.07.07v4.624c0 .095.008.084-.085.084-.37 0-1.11-.002-1.304 0-.048.001-.06.03-.06.03l-.697 1.519s-.014.025-.008.036c.006.01.013.008.058.008 1.748.003 3.495.002 5.243.002.03-.001.034-.006.035-.033v-1.539zm4.177-3.43c0 .013-.007.023-.02.024-.346.006-.692.004-1.037.004-.014-.002-.022-.01-.022-.024-.005-.434-.007-.869-.01-1.303 0-.072-.006-.071.07-.07l.733-.003c.041 0 .081.002.12.015.093.025.16.107.165.204.006.431.002 1.153.001 1.153zm2.67.244a1.953 1.953 0 0 0-.883-.222h-.18c-.04-.001-.04-.003-.042-.04V10.21c0-.132-.007-.263-.025-.394a1.823 1.823 0 0 0-.153-.53 1.533 1.533 0 0 0-.677-.71 2.167 2.167 0 0 0-1-.258c-.153-.003-.567 0-.72 0-.07 0-.068.004-.068-.065V7.76c0-.031-.01-.041-.046-.039H17.93s-.016 0-.023.007c-.006.006-.008.012-.008.023v.546c-.008.036-.057.015-.082.022h-.95c-.022.002-.028.008-.03.032v1.481c0 .09-.004.082.082.082h.913c.082 0 .072.128.072.128V11.19s.003.117-.06.117h-1.482c-.068 0-.06.082-.06.082v1.445s-.01.068.064.068h1.457c.082 0 .076-.006.076.079v3.225c0 .088-.007.081.082.081h1.43c.09 0 .082.007.082-.08v-3.27c0-.029.006-.035.033-.035l2.323-.003c.098 0 .191.02.28.061a.46.46 0 0 1 .274.407c.008.395.003.79.003 1.185 0 .259-.107.367-.33.367h-1.218c-.023.002-.029.008-.028.033.184.437.374.871.57 1.303a.045.045 0 0 0 .04.026c.17.005.34.002.51.003.15-.002.517.004.666-.01a2.03 2.03 0 0 0 .408-.075c.59-.18.975-.698.976-1.313v-1.981c0-.128-.01-.254-.034-.38 0 .078-.029-.641-.724-.998z"/>' +
+      '</svg>'
+    );
+  }
+  function makeMailIconDataUrl() {
+    return svgDataUri(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 24 24">' +
+      '<path fill="#111111" d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z"/>' +
+      '<path fill="#111111" d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z"/>' +
+      '</svg>'
+    );
+  }
+  function loadImg(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('图片读取失败'));
+      img.src = src;
+    });
+  }
+  function drawTintedImage(ctx, img, x, y, w, h, color) {
+    const layer = document.createElement('canvas');
+    layer.width = Math.max(1, Math.round(w));
+    layer.height = Math.max(1, Math.round(h));
+    const g = layer.getContext('2d');
+    g.drawImage(img, 0, 0, layer.width, layer.height);
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = color;
+    g.fillRect(0, 0, layer.width, layer.height);
+    ctx.drawImage(layer, x, y);
+  }
+  function wrapCanvasLines(ctx, text, maxWidth, maxLines) {
+    const raw = String(text || '').replace(/\r/g, '').split('\n');
+    const lines = [];
+    raw.forEach(paragraph => {
+      if (!paragraph) { lines.push(''); return; }
+      let current = '';
+      for (const ch of paragraph) {
+        const next = current + ch;
+        if (current && ctx.measureText(next).width > maxWidth) {
+          lines.push(current);
+          current = ch;
+        } else current = next;
+      }
+      if (current) lines.push(current);
+    });
+    return lines.slice(0, maxLines == null ? 80 : maxLines);
+  }
+  async function bakeSectionHead(num, title, level) {
+    await ensureHeadFont();
+    const scale = 3;
+    if (level >= 3) {
+      const cssSize = 18;
+      const fontSize = cssSize * scale;
+      const maxW = 374 * scale;
+      const probe = document.createElement('canvas').getContext('2d');
+      probe.font = '700 ' + fontSize + 'px ChillGSans';
+      if (probe.letterSpacing !== undefined) probe.letterSpacing = Math.round(fontSize * 0.04) + 'px';
+      const lines = wrapCanvasLines(probe, String(title || '').trim(), maxW, 8);
+      const lineH = Math.round(fontSize * 1.4);
+      const padY = Math.round(2 * scale);
+      const { canvas, ctx } = paperCanvas(maxW, Math.max(lineH, padY * 2 + lineH * Math.max(1, lines.length)));
+      ctx.font = '700 ' + fontSize + 'px ChillGSans';
+      if (ctx.letterSpacing !== undefined) ctx.letterSpacing = Math.round(fontSize * 0.04) + 'px';
+      ctx.fillStyle = INK;
+      ctx.strokeStyle = INK;
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = Math.max(1, scale * 0.42);
+      ctx.textBaseline = 'top';
+      ctx.textAlign = 'left';
+      (lines.length ? lines : ['']).forEach((line, i) => {
+        const y = padY + i * lineH;
+        ctx.strokeText(line, 0, y);
+        ctx.fillText(line, 0, y);
+      });
+      return jpegSrc(canvas, 0.93);
+    }
+    const maxW = 374 * scale;
+    const numSize = 32 * scale;
+    const titleSize = 28 * scale;
+    const padY = Math.round(4 * scale);
+    const lineH = Math.round(titleSize * 1.15);
+    const numW = Math.round(numSize * 1.7);
+    const probe = document.createElement('canvas').getContext('2d');
+    probe.font = '700 ' + titleSize + 'px ChillGSans';
+    if (probe.letterSpacing !== undefined) probe.letterSpacing = Math.round(titleSize * 0.06) + 'px';
+    const lines = wrapCanvasLines(probe, String(title || '').trim(), maxW - numW, 3);
+    const { canvas, ctx } = paperCanvas(maxW, padY * 2 + Math.max(numSize, lineH * Math.max(1, lines.length)));
+    ctx.fillStyle = INK;
+    ctx.strokeStyle = INK;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(1, scale * 0.42);
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.font = '700 ' + numSize + 'px ChillDIN';
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = Math.round(numSize * 0.04) + 'px';
+    ctx.strokeText(String(num || '01'), 0, padY);
+    ctx.fillText(String(num || '01'), 0, padY);
+    ctx.font = '700 ' + titleSize + 'px ChillGSans';
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = Math.round(titleSize * 0.06) + 'px';
+    ctx.textAlign = 'right';
+    (lines.length ? lines : ['']).forEach((line, i) => {
+      const y = padY + i * lineH;
+      ctx.strokeText(line, maxW, y);
+      ctx.fillText(line, maxW, y);
+    });
+    return jpegSrc(canvas, 0.93);
+  }
+  const PREVIEW_COVER_W = 860;
+  let coverBakeCache = { key: '', src: null };
+  function coverBakeKey(maxW) {
+    const photo = coverDataUrl || '';
+    return [
+      maxW || PREVIEW_COVER_W,
+      coverImageFocus,
+      $('coverTitle').value,
+      $('coverSubtitle').value,
+      photo ? (photo.length + ':' + photo.slice(0, 40) + photo.slice(-20)) : ''
+    ].join('\n');
+  }
+  async function bakeCoverImage(maxW) {
+    if (!coverDataUrl) return null;
+    const width = maxW || PREVIEW_COVER_W;
+    const key = coverBakeKey(width);
+    if (coverBakeCache.key === key && coverBakeCache.src) return coverBakeCache.src;
+    try {
+      await ensureHeadFont();
+      const photo = await loadImg(coverDataUrl);
+      const logo = await loadImg(LOGO_SRC);
+      const srcW = photo.naturalWidth || photo.width;
+      const srcH = photo.naturalHeight || photo.height;
+      const w = Math.min(width, srcW);
+      const h = Math.max(1, Math.round(w * srcH / srcW));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      if (ctx.imageSmoothingQuality) ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(photo, 0, 0, w, h);
+
+      const topH = Math.round(h * 0.24);
+      const topG = ctx.createLinearGradient(0, 0, 0, topH);
+      topG.addColorStop(0, 'rgba(0,0,0,0.46)');
+      topG.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = topG;
+      ctx.fillRect(0, 0, w, topH);
+
+      const logoW = Math.round(w * 0.2);
+      const logoH = Math.round(logoW * ((logo.naturalHeight || logo.height) / (logo.naturalWidth || logo.width)));
+      drawTintedImage(ctx, logo, Math.round((w - logoW) / 2), Math.round(h * 0.04), logoW, logoH, '#ffffff');
+
+      const coverTitle = $('coverTitle').value.replace(/\r/g, '');
+      const coverSub = $('coverSubtitle').value.replace(/\r/g, '');
+      if (coverTitle.trim() || coverSub.trim()) {
+        const scrimH = Math.round(h * 0.56);
+        const botG = ctx.createLinearGradient(0, h - scrimH, 0, h);
+        botG.addColorStop(0, 'rgba(0,0,0,0)');
+        botG.addColorStop(1, 'rgba(0,0,0,0.74)');
+        ctx.fillStyle = botG;
+        ctx.fillRect(0, h - scrimH, w, scrimH);
+        const pad = Math.round(w * 0.051);
+        const maxWidth = w - pad * 2;
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        let y = h - Math.round(w * 0.045);
+        if (coverSub.trim()) {
+          ctx.font = '300 ' + Math.round(w * 0.03) + 'px ' + BODY_FONT;
+          wrapCanvasLines(ctx, coverSub.trim(), maxWidth).reverse().forEach(line => {
+            ctx.fillText(line, pad, y);
+            y -= Math.round(w * 0.042);
+          });
+          y -= Math.round(w * 0.016);
+        }
+        if (coverTitle.trim()) {
+          ctx.font = '700 ' + Math.round(w * 0.1) + 'px ' + HEAD_FONT;
+          wrapCanvasLines(ctx, coverTitle.trim(), maxWidth).reverse().forEach(line => {
+            ctx.fillText(line, pad, y);
+            y -= Math.round(w * 0.118);
+          });
+        }
+      }
+      const src = canvas.toDataURL('image/jpeg', width >= 1600 ? 0.92 : 0.84);
+      coverBakeCache = { key, src };
+      return src;
+    } catch (error) {
+      console.error(error);
+      return coverDataUrl;
+    }
+  }
+  function parseSectionHead(raw, autoIndex) {
+    const text = String(raw || '').trim();
+    const m = text.match(/^(\d{1,2})(?:[.．、])?\s+(.+)$/);
+    if (m) return { num: String(m[1]).padStart(2, '0'), title: m[2].trim() };
+    return { num: String(autoIndex || 1).padStart(2, '0'), title: text };
+  }
+  function makeSectionHead(title, level, index) {
+    if (level >= 3) {
+      const el = document.createElement('h3');
+      el.className = 'wx-h3';
+      el.textContent = title;
+      return el;
+    }
+    const parsed = parseSectionHead(title, index);
+    const el = document.createElement('h2');
+    el.className = 'wx-h2';
+    el.dataset.num = parsed.num;
+    el.dataset.title = parsed.title;
+    const num = document.createElement('span');
+    num.className = 'wx-h2-num';
+    num.textContent = parsed.num;
+    const label = document.createElement('span');
+    label.className = 'wx-h2-title';
+    label.textContent = parsed.title;
+    el.append(num, label);
+    return el;
+  }
+  function groupArticleImageBlocks(blocks) {
+    const grouped = [];
+    for (let i = 0; i < blocks.length;) {
+      const block = blocks[i];
+      const imageId = block.classList && block.classList.contains('article-figure') ? block.dataset.imageId : null;
+      const groupId = imageId ? articleImageGroupById[imageId] : null;
+      const group = groupId ? articleImageGroups[groupId] : null;
+      if (!group || group.ids[0] !== imageId) { grouped.push(block); i++; continue; }
+      const figures = [];
+      let cursor = i;
+      while (cursor < blocks.length) {
+        const candidate = blocks[cursor];
+        const candidateId = candidate.classList && candidate.classList.contains('article-figure') ? candidate.dataset.imageId : null;
+        if (!candidateId || articleImageGroupById[candidateId] !== groupId) break;
+        figures.push(candidate);
+        cursor++;
+      }
+      if (figures.length < 2) { grouped.push(block); i++; continue; }
+      const gallery = document.createElement('div');
+      gallery.className = 'article-gallery';
+      gallery.dataset.imageGroupId = groupId;
+      gallery.style.setProperty('--article-gallery-columns', String(group.columns));
+      figures.forEach(figure => gallery.appendChild(figure));
+      grouped.push(gallery);
+      i = cursor;
+    }
+    return grouped;
+  }
+  function isQuoteLine(line) {
+    return /^\s*(?:>|＞)\s?/.test(String(line || ''));
+  }
+  function stripQuoteMarker(line) {
+    return String(line || '').replace(/^\s*(?:>|＞)\s?/, '');
+  }
+  function markdownBlocks(markdown) {
+    const lines = markdown.replace(/\r/g, '').split('\n');
+    const blocks = [];
+    let consumedNativeTitle = false;
+    let sectionNo = 0;
+    for (let i = 0; i < lines.length;) {
+      const line = lines[i];
+      if (!line.trim()) { i++; continue; }
+      const fence = line.match(/^(```+|~~~+)\s*([\w-]+)?\s*$/);
+      if (fence) {
+        const marker = fence[1];
+        const codeLines = [];
+        i++;
+        while (i < lines.length && !lines[i].startsWith(marker)) { codeLines.push(lines[i]); i++; }
+        if (i < lines.length) i++;
+        blocks.push(makePreBlock(codeLines.join('\n')));
+        continue;
+      }
+      if (isTableStart(lines, i)) {
+        const tableLines = [lines[i], lines[i + 1]];
+        i += 2;
+        while (i < lines.length && lines[i].trim() && /\|/.test(lines[i])) { tableLines.push(lines[i]); i++; }
+        blocks.push(makeTable(tableLines));
+        continue;
+      }
+      if (isAsciiDiagramLine(line)) {
+        const diagramLines = [];
+        while (i < lines.length && lines[i].trim() && isAsciiDiagramLine(lines[i])) { diagramLines.push(lines[i]); i++; }
+        blocks.push(makePreBlock(diagramLines.join('\n'), 'md-ascii-block'));
+        continue;
+      }
+      const image = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/);
+      if (image) { blocks.push(makeImageFigure(image[2], image[1].trim())); i++; continue; }
+      if (isHorizontalRule(line)) { blocks.push(makeHorizontalRule()); i++; continue; }
+      const heading = line.match(/^(#{1,3})\s+(.+)$/);
+      if (heading) {
+        const isH1 = heading[1].length === 1;
+        if (isH1 && !$('articleTitle').value.trim() && !consumedNativeTitle) {
+          consumedNativeTitle = true;
+          blocks.push({ __titleOnly: heading[2] });
+        } else if (heading[1].length === 2) {
+          sectionNo += 1;
+          blocks.push(makeSectionHead(heading[2], 2, sectionNo));
+        } else {
+          blocks.push(makeSectionHead(heading[2], heading[1].length));
+        }
+        i++; continue;
+      }
+      if (isListItemLine(line)) {
+        const listLines = [];
+        while (i < lines.length && isListItemLine(lines[i])) listLines.push(lines[i++]);
+        blocks.push(makeMarkdownList(listLines)); continue;
+      }
+      if (isFigureNoteLine(line) || (isQuoteLine(line) && isFigureNoteLine(stripQuoteMarker(line)))) {
+        const note = makeFigureNote(isQuoteLine(line) ? stripQuoteMarker(line) : line);
+        if (note) blocks.push(note);
+        i++; continue;
+      }
+      if (isQuoteLine(line)) {
+        const quote = document.createElement('p');
+        quote.className = 'wx-layer-quote';
+        const mark = document.createElement('span');
+        mark.className = 'wx-qmark';
+        mark.textContent = '\u201c';
+        const body = document.createElement('span');
+        body.className = 'wx-quote-text';
+        const quoteLines = [];
+        while (i < lines.length && isQuoteLine(lines[i])) { quoteLines.push(stripQuoteMarker(lines[i])); i++; }
+        appendInlineMarkdown(body, quoteLines.join(' '));
+        quote.append(mark, body);
+        blocks.push(quote); continue;
+      }
+      if (isLabeledStart(line)) {
+        const paragraph = [];
+        while (
+          i < lines.length &&
+          lines[i].trim() &&
+          !/^(#{1,3})\s+|^!\[[^\]]*\]\([^)]+\)$|^(```+|~~~+)/.test(lines[i]) &&
+          !isQuoteLine(lines[i]) &&
+          !isHorizontalRule(lines[i]) &&
+          !isFigureNoteLine(lines[i]) &&
+          !isListItemLine(lines[i]) &&
+          !isTableStart(lines, i) &&
+          !isAsciiDiagramLine(lines[i]) &&
+          (paragraph.length === 0 || !isLabeledStart(lines[i]))
+        ) { paragraph.push(lines[i]); i++; }
+        const parsed = parseLabeledParagraph(paragraph.join(' '));
+        blocks.push(parsed ? makeLabeledParagraph(parsed.kind, parsed.body) : makeParagraph(paragraph.join(' ')));
+        continue;
+      }
+      const paragraph = [];
+      while (
+        i < lines.length &&
+        lines[i].trim() &&
+        !/^(#{1,3})\s+|^!\[[^\]]*\]\([^)]+\)$|^(```+|~~~+)/.test(lines[i]) &&
+        !isQuoteLine(lines[i]) &&
+        !isHorizontalRule(lines[i]) &&
+        !isFigureNoteLine(lines[i]) &&
+        !isListItemLine(lines[i]) &&
+        !isTableStart(lines, i) &&
+        !isAsciiDiagramLine(lines[i])
+      ) { paragraph.push(lines[i]); i++; }
+      blocks.push(makeParagraph(paragraph.join(' ')));
+    }
+    return groupArticleImageBlocks(blocks.filter(b => !b.__titleOnly));
+  }
+
+  function makeCover(src) {
+    if (!src) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'wx-cover';
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = '';
+    wrap.appendChild(img);
+    return wrap;
+  }
+  const ctaColumnCache = {};
+  async function bakeCtaColumn(iconSrc, footer) {
+    const key = footer + ':paper-jpeg';
+    if (ctaColumnCache[key]) return ctaColumnCache[key];
+    await ensureHeadFont();
+    const scale = 3;
+    const W = 230 * scale;
+    const H = 108 * scale;
+    const { canvas, ctx } = paperCanvas(W, H);
+    const icon = await loadImg(iconSrc);
+    const iconSize = 56 * scale;
+    ctx.drawImage(icon, Math.round((W - iconSize) / 2), 10 * scale, iconSize, iconSize);
+
+    ctx.fillStyle = INK;
+    ctx.textAlign = 'center';
+    let size = 17 * scale;
+    ctx.textBaseline = 'bottom';
+    ctx.font = '500 ' + size + 'px ' + CTA_FONT;
+    while (size > 10 * scale && ctx.measureText(footer).width > W - 12 * scale) {
+      size -= 1;
+      ctx.font = '500 ' + size + 'px ' + CTA_FONT;
+    }
+    ctx.fillText(footer, W / 2, H - 8 * scale);
+    const url = jpegSrc(canvas, 0.93);
+    ctaColumnCache[key] = url;
+    return url;
+  }
+  async function bakeBrandMark() {
+    const img = await loadImg(LOGO_SRC);
+    const srcW = img.naturalWidth || img.width || 1;
+    const srcH = img.naturalHeight || img.height || 1;
+    const w = Math.min(236, srcW);
+    const h = Math.max(1, Math.round(w * srcH / srcW));
+    const { canvas, ctx } = paperCanvas(w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvasToPaperGif(canvas, 'light');
+  }
+  function makePaperTransparent(ctx, w, h, theme) {
+    const colors = themeOf(theme);
+    const ink = hexRgb(colors.ink);
+    const image = ctx.getImageData(0, 0, w, h);
+    const d = image.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const luminance = (d[i] + d[i + 1] + d[i + 2]) / 3;
+      const coverage = Math.min(1, Math.max(0, (242 - luminance) / 225));
+      d[i] = ink[0];
+      d[i + 1] = ink[1];
+      d[i + 2] = ink[2];
+      d[i + 3] = Math.round(d[i + 3] * coverage);
+    }
+    ctx.putImageData(image, 0, 0);
+  }
+  async function bakeHandTransparent(theme) {
+    const name = theme === 'dark' ? 'dark' : 'light';
+    try {
+      const fallback = await loadImg(HAND_GIF_SRC);
+      const w = fallback.naturalWidth || fallback.width || 1;
+      const h = fallback.naturalHeight || fallback.height || 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (typeof ImageDecoder !== 'undefined') {
+        const buf = await (await fetch(HAND_GIF_SRC)).arrayBuffer();
+        const decoder = new ImageDecoder({ data: buf, type: 'image/gif' });
+        await decoder.tracks.ready;
+        const count = decoder.tracks.selectedTrack && decoder.tracks.selectedTrack.frameCount || 1;
+        const framed = await decoder.decode({ frameIndex: Math.max(0, count - 1) });
+        ctx.drawImage(framed.image, 0, 0, w, h);
+        if (decoder.close) decoder.close();
+      } else {
+        ctx.drawImage(fallback, 0, 0, w, h);
+      }
+      makePaperTransparent(ctx, w, h, name);
+      return canvas.toDataURL('image/png');
+    } catch (error) {
+      return bakeBrandMark(name);
+    }
+  }
+  const HAND_FIXED_LIGHT_GIF_SRC = BRAND.logoHand || BRAND.logo;
+  function stopHandReplay() {
+    clearTimeout(handReplayTimer);
+    handReplayTimer = null;
+  }
+  function replayHandLogo(img) {
+    img.src = '';
+    img.src = HAND_FIXED_LIGHT_GIF_SRC;
+  }
+  function makeCtaBrand(keepHand) {
+    stopHandReplay();
+    if (ctaLogoStyle === 'hand') {
+      if (keepHand) return keepHand;
+      const logo = document.createElement('img');
+      logo.className = 'cta-brand cta-brand-hand';
+      logo.alt = BRAND.name;
+      logo.src = HAND_FIXED_LIGHT_GIF_SRC;
+      logo.addEventListener('click', () => replayHandLogo(logo));
+      return logo;
+    }
+    const logo = document.createElement('img');
+    logo.className = 'cta-brand';
+    logo.src = LOGO_SRC;
+    logo.alt = BRAND.name;
+    return logo;
+  }
+  async function makeCta(keepHand) {
+    const wrap = document.createElement('div');
+    wrap.className = 'wx-cta';
+    const logo = makeCtaBrand(keepHand);
+    const row = document.createElement('div');
+    row.className = 'cta-pair';
+    const xhs = document.createElement('a');
+    xhs.href = XHS_URL;
+    xhs.target = '_blank';
+    xhs.rel = 'noreferrer';
+    xhs.title = '小红书';
+    const xhsImg = document.createElement('img');
+    xhsImg.src = await bakeCtaColumn(XHS_ICON_SRC, BRAND.xhsHandle || BRAND.name);
+    xhsImg.alt = '小红书';
+    xhs.appendChild(xhsImg);
+    const mail = document.createElement('a');
+    mail.href = 'mailto:' + EMAIL;
+    mail.title = EMAIL;
+    const mailImg = document.createElement('img');
+    mailImg.src = await bakeCtaColumn(MAIL_ICON_SRC, EMAIL);
+    mailImg.alt = '邮箱';
+    mail.appendChild(mailImg);
+    row.append(xhs, mail);
+    wrap.append(logo, row);
+    return wrap;
+  }
+
+  let renderTimer = null;
+  function scheduleRender(kind) {
+    clearTimeout(renderTimer);
+    const delay = kind === 'coverText' ? 180 : 90;
+    renderTimer = setTimeout(() => {
+      renderTimer = null;
+      render({ coverOnly: kind === 'coverText' });
+    }, delay);
+  }
+  async function flushRender() {
+    clearTimeout(renderTimer);
+    renderTimer = null;
+    await render();
+  }
+  async function render(opts) {
+    await ensureHeadFont();
+    const token = ++renderToken;
+    const title = $('articleTitle').value.trim() || firstMarkdownTitle() || '未命名文章';
+    $('wxNativeTitle').textContent = title;
+    const coverOnly = !!(opts && opts.coverOnly);
+    const existingCover = articleRoot.querySelector('.wx-cover img');
+    if (coverOnly && (existingCover || !coverDataUrl)) {
+      const coverSrc = await bakeCoverImage(PREVIEW_COVER_W);
+      if (token !== renderToken) return;
+      if (existingCover) {
+        if (coverSrc) existingCover.src = coverSrc;
+        else {
+          const wrap = existingCover.closest('.wx-cover');
+          if (wrap) wrap.remove();
+        }
+      }
+      fitPreview();
+      return;
+    }
+    const coverSrc = await bakeCoverImage(PREVIEW_COVER_W);
+    if (token !== renderToken) return;
+    const keepHand = ctaLogoStyle === 'hand' ? articleRoot.querySelector('.cta-brand-hand') : null;
+    articleRoot.innerHTML = '';
+    const cover = makeCover(coverSrc);
+    if (cover) articleRoot.appendChild(cover);
+    const body = document.createElement('div');
+    body.className = 'wx-body';
+    markdownBlocks($('text').value).forEach(block => body.appendChild(block));
+    articleRoot.appendChild(body);
+    articleRoot.appendChild(await makeCta(keepHand));
+    fitPreview();
+    articleRoot.querySelectorAll('img').forEach(img => {
+      if (!img.complete) img.addEventListener('load', fitPreview, { once: true });
+    });
+    syncArticleImageEditor();
+  }
+  function firstMarkdownTitle() {
+    const m = $('text').value.match(/^#\s+(.+)$/m);
+    return m ? m[1].trim() : '';
+  }
+
+  function dissolveArticleImageGroup(imageId) {
+    const groupId = articleImageGroupById[imageId];
+    const group = groupId ? articleImageGroups[groupId] : null;
+    if (!group) return;
+    group.ids.forEach(id => { delete articleImageGroupById[id]; });
+    delete articleImageGroups[groupId];
+  }
+  function consecutiveArticleImageIds(imageId, count) {
+    const lines = $('text').value.replace(/\r/g, '').split('\n');
+    const tokenAt = line => {
+      const match = line.trim().match(/^!\[[^\]]*\]\(([^)\s]+)\)$/);
+      return match ? match[1] : null;
+    };
+    const start = lines.findIndex(line => tokenAt(line) === imageId);
+    if (start < 0) return [];
+    const ids = [imageId];
+    for (let i = start + 1; i < lines.length && ids.length < count; i++) {
+      if (!lines[i].trim()) continue;
+      const nextId = tokenAt(lines[i]);
+      if (!nextId) break;
+      ids.push(nextId);
+    }
+    return ids;
+  }
+  function setArticleImageGroup(imageId, count) {
+    if (count === 1) {
+      dissolveArticleImageGroup(imageId);
+      return { ok: true, message: '已恢复为单张图片' };
+    }
+    const ids = consecutiveArticleImageIds(imageId, count);
+    if (ids.length < count) {
+      return { ok: false, message: '请确保当前图片后面紧接着还有 ' + (count - 1) + ' 张图片' };
+    }
+    [...new Set(ids.map(id => articleImageGroupById[id]).filter(Boolean))].forEach(groupId => {
+      const group = articleImageGroups[groupId];
+      if (group && group.ids[0]) dissolveArticleImageGroup(group.ids[0]);
+    });
+    const groupId = 'image-group-' + (++articleImageGroupIndex);
+    articleImageGroups[groupId] = { ids: ids.slice(), columns: count };
+    ids.forEach(id => { articleImageGroupById[id] = groupId; });
+    return { ok: true, message: '已将 ' + count + ' 张图片并排' };
+  }
+  function selectedArticleImageGroupSize(imageId) {
+    const groupId = articleImageGroupById[imageId];
+    const group = groupId ? articleImageGroups[groupId] : null;
+    return group ? String(group.columns) : '1';
+  }
+  function setImageEditorStatus(message) { $('imageEditorStatus').textContent = message || ''; }
+  function syncArticleImageEditor() {
+    const editor = $('imageEditor');
+    const selectedFigure = selectedArticleImageId
+      ? articleRoot.querySelector('.article-figure[data-image-id="' + selectedArticleImageId + '"]')
+      : null;
+    articleRoot.querySelectorAll('.article-figure').forEach(figure => {
+      figure.classList.toggle('is-selected', figure === selectedFigure);
+    });
+    if (!selectedFigure) { editor.hidden = true; return; }
+    editor.hidden = false;
+    const settings = getArticleImageSettings(selectedArticleImageId);
+    const groupSize = selectedArticleImageGroupSize(selectedArticleImageId);
+    $('imageEditorName').textContent = selectedArticleImageId + (groupSize === '1' ? ' · 单张' : ' · ' + groupSize + ' 张并排');
+    editor.querySelectorAll('[data-image-control]').forEach(control => {
+      const name = control.dataset.imageControl;
+      const currentValue = name === 'group' ? groupSize : String(settings[name]);
+      control.querySelectorAll('button[data-value]').forEach(button => {
+        button.classList.toggle('active', button.dataset.value === currentValue);
+      });
+    });
+  }
+  articleRoot.addEventListener('click', event => {
+    const figure = event.target.closest('.article-figure');
+    if (!figure) return;
+    selectedArticleImageId = figure.dataset.imageId;
+    setImageEditorStatus('');
+    syncArticleImageEditor();
+  });
+  $('closeImageEditor').addEventListener('click', () => {
+    selectedArticleImageId = null;
+    setImageEditorStatus('');
+    syncArticleImageEditor();
+  });
+  $('imageEditor').addEventListener('click', event => {
+    const button = event.target.closest('button[data-value]');
+    if (!button || !selectedArticleImageId) return;
+    const control = button.closest('[data-image-control]');
+    const name = control.dataset.imageControl;
+    const value = button.dataset.value;
+    if (name === 'group') {
+      const result = setArticleImageGroup(selectedArticleImageId, Number(value));
+      setImageEditorStatus(result.message);
+      if (!result.ok) return;
+    } else {
+      getArticleImageSettings(selectedArticleImageId)[name] = value;
+      setImageEditorStatus(name === 'ratio' ? '图片比例已更新' : '图片排版已更新');
+    }
+    render();
+    syncArticleImageEditor();
+    scheduleDraftSave();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || $('imageEditor').hidden) return;
+    selectedArticleImageId = null;
+    setImageEditorStatus('');
+    syncArticleImageEditor();
+  });
+
+  function insertTextAtCursor(textarea, value) {
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || 0;
+    const before = textarea.value.slice(0, start);
+    const after = textarea.value.slice(end);
+    const needsBeforeBreak = before && !before.endsWith('\n\n') ? (before.endsWith('\n') ? '\n' : '\n\n') : '';
+    const needsAfterBreak = after && !after.startsWith('\n\n') ? (after.startsWith('\n') ? '\n' : '\n\n') : '';
+    const insert = needsBeforeBreak + value + needsAfterBreak;
+    textarea.value = before + insert + after;
+    const nextCursor = before.length + insert.length;
+    textarea.setSelectionRange(nextCursor, nextCursor);
+    textarea.focus();
+    render();
+    scheduleDraftSave();
+  }
+  function applyMarkdownAction(action) {
+    const textarea = $('text');
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || 0;
+    const selected = textarea.value.slice(start, end);
+    let replacement = selected;
+    if (action === 'small-muted') {
+      replacement = (selected || '小灰字').split('\n').map(line => line ? '^^' + line + '^^' : line).join('\n');
+      textarea.setRangeText(replacement, start, end, 'end');
+    } else if (action === 'comment-line') {
+      replacement = (selected || '这句话可以留言').split('\n').map(line => line ? '++' + line + '++' : line).join('\n');
+      textarea.setRangeText(replacement, start, end, 'end');
+    } else if (action === 'h2') {
+      insertTextAtCursor(textarea, '## 起点');
+      return;
+    } else if (action === 'hr') {
+      insertTextAtCursor(textarea, '---');
+      return;
+    }
+    textarea.focus();
+    render();
+    scheduleDraftSave();
+  }
+  $('markdownToolbar').addEventListener('click', event => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
+    applyMarkdownAction(button.dataset.action);
+  });
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = event => resolve(event.target.result);
+      reader.onerror = () => reject(reader.error || new Error('图片读取失败'));
+      reader.readAsDataURL(file);
+    });
+  }
+  $('articleImageFile').addEventListener('change', async e => {
+    const files = [...e.target.files];
+    if (!files.length) return;
+    try {
+      const dataUrls = await Promise.all(files.map(readFileAsDataUrl));
+      const tokens = files.map((file, index) => {
+        const id = 'img-' + (++articleImageIndex);
+        articleImages[id] = dataUrls[index];
+        getArticleImageSettings(id);
+        const caption = (file.name.replace(/\.[^.]+$/, '') || '').replace(/[\[\]]/g, '');
+        return '![' + caption + '](' + id + ')';
+      });
+      insertTextAtCursor($('text'), tokens.join('\n\n'));
+      scheduleDraftSave(true);
+    } catch (error) {
+      console.error(error);
+      setDraftStatus('正文图片读取失败', 'error');
+    } finally {
+      $('articleImageFile').value = '';
+    }
+  });
+  $('coverFile').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = event => { coverDataUrl = event.target.result; render(); scheduleDraftSave(true); };
+    reader.onerror = () => setDraftStatus('封面图片读取失败', 'error');
+    reader.readAsDataURL(file);
+  });
+  $('clearCover').addEventListener('click', () => {
+    coverDataUrl = null;
+    $('coverFile').value = '';
+    $('coverTitle').value = '';
+    $('coverSubtitle').value = '';
+    render();
+    scheduleDraftSave(true);
+  });
+
+  $('text').addEventListener('input', () => scheduleRender('body'));
+  $('articleTitle').addEventListener('input', () => scheduleRender('body'));
+  $('coverTitle').addEventListener('input', () => scheduleRender('coverText'));
+  $('coverSubtitle').addEventListener('input', () => scheduleRender('coverText'));
+
+  function fitPreview() {
+    const stage = document.querySelector('.stage');
+    const phone = document.querySelector('.phone');
+    const pad = 48;
+    const availW = stage.clientWidth - pad;
+    const phoneW = phone.offsetWidth;
+    const scale = Math.min(availW / phoneW, 1);
+    $('previewWrap').style.transform = 'scale(' + scale + ')';
+    $('previewWrap').style.width = (phoneW * scale) + 'px';
+    $('previewWrap').style.height = (phone.offsetHeight * scale) + 'px';
+  }
+  window.addEventListener('resize', fitPreview);
+
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+  function inlineHtmlFromNode(node) {
+    let html = '';
+    node.childNodes.forEach(child => {
+      if (child.nodeType === Node.TEXT_NODE) html += escapeHtml(child.textContent);
+      else if (child.nodeName === 'STRONG') html += '<strong>' + escapeHtml(child.textContent) + '</strong>';
+      else if (child.nodeName === 'EM') html += '<em>' + escapeHtml(child.textContent) + '</em>';
+      else if (child.nodeName === 'U') html += '<span style="text-decoration: underline;">' + escapeHtml(child.textContent) + '</span>';
+      else if (child.nodeName === 'CODE') html += escapeHtml(child.textContent);
+      else if (child.nodeName === 'A') html += '<a href="' + escapeHtml(child.getAttribute('href') || '') + '" style="color: rgb(87, 107, 149); text-decoration: none;">' + escapeHtml(child.textContent) + '</a>';
+      else if (child.classList && child.classList.contains('wx-qmark')) {
+        /* legacy */
+      } else if (child.classList && child.classList.contains('wx-qrule')) {
+        /* exported separately */
+      } else if (child.classList && child.classList.contains('wx-figure-note-kicker')) {
+        /* exported separately */
+      } else if (child.classList && child.classList.contains('wx-figure-note-text')) {
+        html += inlineHtmlFromNode(child);
+      } else if (child.classList && child.classList.contains('wx-quote-text')) {
+        html += inlineHtmlFromNode(child);
+      } else if (child.classList && child.classList.contains('wx-label')) {
+        html += '<strong style="font-weight:500;font-size:16px;letter-spacing:.034em;color:rgb(44,44,44);">' + escapeHtml(child.textContent) + '</strong>';
+      } else if (child.classList && child.classList.contains('wx-comment-line')) {
+        html += '<span style="border-bottom:1px dashed rgb(96,96,96);">' + escapeHtml(child.textContent) + '</span>';
+      } else if (child.classList && child.classList.contains('small-muted')) {
+        html += '<span style="color:rgb(96,96,96);font-size:12px;' + fixedPaperStyle() + '">' + escapeHtml(child.textContent) + '</span>';
+      } else html += escapeHtml(child.textContent);
+    });
+    return html;
+  }
+  function wxP(inner, extra) {
+    return '<p style="' + P_STYLE + fixedPaperStyle() + (extra || '') + '"><span style="' + fixedPaperStyle() + '">' + inner + '</span></p>';
+  }
+  function wxFigureNote(inner) {
+    const paper = fixedPaperStyle();
+    return '<p style="margin:1.7em 28px;padding:16px 4px;text-align:center;font-size:12px;line-height:1.7em;letter-spacing:.04em;color:rgb(112,112,112);border-top:1px solid rgb(200,200,200);border-bottom:1px solid rgb(200,200,200);' + paper + '">' +
+      '<span style="display:block;margin:0 0 8px;font-size:10px;font-weight:500;letter-spacing:.32em;color:rgb(44,44,44);' + paper + '">图</span>' +
+      '<span style="display:block;font-size:12px;color:rgb(112,112,112);' + paper + '">' + inner + '</span>' +
+      '</p>';
+  }
+  function wxQuote(inner) {
+    const paper = fixedPaperStyle();
+    return '<p style="margin:1.4em 28px .95em;padding:0;border:0;font-size:13px;line-height:1.85em;letter-spacing:.03em;color:rgb(112,112,112);text-align:left;font-style:italic;font-weight:300;' + paper + '">' +
+      '<span style="font-style:normal;font-weight:500;font-size:15px;letter-spacing:0;color:rgb(112,112,112);' + paper + '">\u201c</span>' +
+      '<span style="font-style:italic;color:rgb(112,112,112);' + paper + '">' + inner + '</span>' +
+      '</p>';
+  }
+  function wxImg(src, width, fullBleed) {
+    const w = width || '100%';
+    const margin = fullBleed ? '0 0 12px' : '0 28px 12px';
+    return '<p style="margin:' + margin + ';text-align:center;' + fixedPaperStyle() + '"><img src="' + src + '" style="display:block;width:' + w + ';border:0;outline:none;margin:0 auto;" /></p>';
+  }
+  async function rasterizeForExport(src, maxW, mime, quality, fill) {
+    const img = await loadImg(src);
+    const srcW = img.naturalWidth || img.width || 1;
+    const srcH = img.naturalHeight || img.height || 1;
+    const w = Math.min(maxW || srcW, srcW);
+    const h = Math.max(1, Math.round(w * srcH / srcW));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    if (ctx.imageSmoothingQuality) ctx.imageSmoothingQuality = 'high';
+    if (mime !== 'image/png') {
+      ctx.fillStyle = fill || PAPER;
+      ctx.fillRect(0, 0, w, h);
+    }
+    ctx.drawImage(img, 0, 0, w, h);
+    if (mime === 'image/png') return canvas.toDataURL('image/png');
+    return canvas.toDataURL('image/jpeg', quality == null ? 0.9 : quality);
+  }
+  function toExportJpeg(src, maxW, quality, fill) {
+    return rasterizeForExport(src, maxW, 'image/jpeg', quality, fill);
+  }
+  async function serializeWeChatHtml() {
+    const parts = [];
+    const paper = fixedPaperStyle();
+    const cover = articleRoot.querySelector('.wx-cover img');
+    const coverSrc = await bakeCoverImage(1920);
+    if (coverSrc) {
+      parts.push(wxImg(coverSrc, '100%', true));
+    }
+    for (const node of articleRoot.querySelectorAll('.wx-body > *')) {
+      if (node.classList.contains('wx-h2') || node.tagName === 'H2') {
+        const parsed = parseSectionHead(node.dataset.title ? (node.dataset.num + ' ' + node.dataset.title) : node.textContent, 1);
+        const src = await bakeSectionHead(node.dataset.num || parsed.num, node.dataset.title || parsed.title, 2);
+        parts.push('<p style="margin:1.5em 28px .75em;text-align:left;' + paper + '"><img src="' + src + '" style="display:block;width:100%;border:0;outline:none;" /></p>');
+      } else if (node.classList.contains('wx-h3') || node.tagName === 'H3') {
+        const src = await bakeSectionHead('', node.textContent, 3);
+        parts.push('<p style="margin:1.2em 28px .55em;text-align:left;' + paper + '"><img src="' + src + '" style="display:block;width:100%;border:0;outline:none;" /></p>');
+      } else if (node.classList.contains('wx-hr')) {
+        parts.push('<p style="margin:32px 28px;padding:0;text-align:center;font-size:0;line-height:0;' + paper + '"><span style="display:inline-block;width:32px;height:1px;border:0;border-top:1px solid rgb(200,200,200);font-size:0;line-height:0;' + paper + '">&nbsp;</span></p>');
+      } else if (node.classList.contains('article-figure')) {
+        const img = node.querySelector('img');
+        const cap = node.querySelector('figcaption');
+        if (img) parts.push(wxImg(await toExportJpeg(img.src, 1080, 0.86), '100%', true));
+        if (cap && cap.textContent.trim()) {
+          parts.push('<p style="margin:0 28px 1.1em;font-size:12px;line-height:1.5em;color:rgb(96,96,96);text-align:center;' + paper + '"><span style="' + paper + '">' + inlineHtmlFromNode(cap) + '</span></p>');
+        }
+      } else if (node.classList.contains('article-gallery')) {
+        for (const img of node.querySelectorAll('.article-figure img')) {
+          parts.push(wxImg(await toExportJpeg(img.src, 1080, 0.86), '100%', true));
+        }
+      } else if (node.classList.contains('wx-figure-note')) {
+        const noteBody = node.querySelector('.wx-figure-note-text') || node;
+        parts.push(wxFigureNote(inlineHtmlFromNode(noteBody)));
+      } else if (node.classList.contains('wx-layer-quote') || node.tagName === 'BLOCKQUOTE') {
+        const quoteBody = node.querySelector('.wx-quote-text') || node;
+        parts.push(wxQuote(inlineHtmlFromNode(quoteBody)));
+      } else if (node.classList.contains('wx-layer-trans')) {
+        parts.push(wxP(inlineHtmlFromNode(node), 'font-size:16px;line-height:1.95em;margin-bottom:1em;'));
+      } else if (node.classList.contains('wx-layer-note')) {
+        parts.push(wxP(inlineHtmlFromNode(node), 'font-size:16px;line-height:1.95em;margin-bottom:1.65em;'));
+      } else if (node.tagName === 'UL' || node.tagName === 'OL') {
+        [...node.children].forEach((li, i) => {
+          const mark = node.tagName === 'OL' ? (i + 1) + '. ' : '· ';
+          parts.push(wxP(mark + inlineHtmlFromNode(li)));
+        });
+      } else if (node.tagName === 'PRE') {
+        parts.push(wxP(escapeHtml(node.textContent)));
+      } else if (node.tagName === 'TABLE') {
+        const rows = [...node.querySelectorAll('tr')].map(tr => {
+          const cells = [...tr.children].map(cell => '<td style="border:1px solid rgba(0,0,0,.12);padding:8px 10px;font-size:13px;' + paper + '"><span style="' + paper + '">' + inlineHtmlFromNode(cell) + '</span></td>').join('');
+          return '<tr>' + cells + '</tr>';
+        }).join('');
+        parts.push('<table cellpadding="0" cellspacing="0" style="width:calc(100% - 56px);margin:0 28px 1.1em;border-collapse:collapse;' + paper + '">' + rows + '</table>');
+      } else if (node.querySelector && node.querySelector('.small-muted') && node.childNodes.length === 1) {
+        parts.push('<p style="margin:0 28px 1.1em;font-size:12px;line-height:1.5em;color:rgb(96,96,96);text-align:center;' + paper + '"><span style="' + paper + '">' + escapeHtml(node.textContent) + '</span></p>');
+      } else {
+        parts.push(wxP(inlineHtmlFromNode(node)));
+      }
+    }
+    const ctaLogoWidth = ctaLogoStyle === 'hand' ? '168px' : '118px';
+    const ctaLogo = ctaLogoStyle === 'hand' ? HAND_FIXED_LIGHT_GIF_SRC : await bakeBrandMark();
+    parts.push('<p style="margin:36px 0 12px;text-align:center;' + paper + '"><img src="' + ctaLogo + '" style="display:block;width:' + ctaLogoWidth + ';height:auto;border:0;outline:none;margin:0 auto;" /></p>');
+    const [xhsCol, mailCol] = await Promise.all([
+      bakeCtaColumn(XHS_ICON_SRC, BRAND.xhsHandle || BRAND.name),
+      bakeCtaColumn(MAIL_ICON_SRC, EMAIL)
+    ]);
+    const colImg = 'display:block;width:100%;max-width:160px;height:auto;border:0;outline:none;margin:0 auto;';
+    const col = 'display:inline-block;width:49%;vertical-align:top;text-align:center;font-size:0;line-height:0;padding:0;margin:0;border:0;' + paper;
+    parts.push(
+      '<p style="margin:4px 28px 0;padding:0;text-align:center;font-size:0;line-height:0;border:0;' + paper + '">' +
+      '<span style="' + col + '">' +
+      '<a href="' + XHS_URL + '" style="display:block;text-decoration:none;color:rgb(17,17,17);border:0;">' +
+      '<img src="' + xhsCol + '" style="' + colImg + '" />' +
+      '</a></span>' +
+      '<span style="' + col + '">' +
+      '<a href="mailto:' + EMAIL + '" style="display:block;text-decoration:none;color:rgb(17,17,17);border:0;">' +
+      '<img src="' + mailCol + '" style="' + colImg + '" />' +
+      '</a></span>' +
+      '</p>'
+    );
+    parts.push('<p style="margin:0;padding:0;font-size:16px;line-height:88px;height:88px;' + paper + '">&nbsp;</p>');
+    return '<section style="color:rgb(0,0,0);font-size:16px;letter-spacing:.034em;padding-bottom:24px;' + paper + '">' +
+      parts.join('') +
+      '</section>';
+  }
+
+  async function copyHtmlViaSelection(html) {
+    const host = document.createElement('div');
+    host.setAttribute('contenteditable', 'true');
+    host.style.cssText = 'position:fixed;left:0;top:0;width:390px;max-height:70vh;overflow:auto;opacity:0;pointer-events:none;';
+    host.innerHTML = html;
+    document.body.appendChild(host);
+    await Promise.all([...host.querySelectorAll('img')].map(img => {
+      if (img.decode) return img.decode().catch(() => {});
+      if (img.complete) return Promise.resolve();
+      return new Promise(resolve => { img.onload = img.onerror = resolve; });
+    }));
+    host.focus();
+    const range = document.createRange();
+    range.selectNodeContents(host);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (error) { ok = false; }
+    sel.removeAllRanges();
+    document.body.removeChild(host);
+    return ok;
+  }
+
+  $('export').addEventListener('click', async () => {
+    const btn = $('export');
+    const old = btn.textContent;
+    const copied = async () => {
+      btn.textContent = '已复制';
+      $('exportHint').textContent = '已复制排版和封面图，可直接粘贴到微信后台。';
+    };
+    const fail = (message) => {
+      btn.textContent = message || '复制失败，请允许剪贴板权限';
+    };
+    try {
+      await flushRender();
+      const html = await serializeWeChatHtml();
+      const htmlDoc = '<html><body><!--StartFragment-->' + html + '<!--EndFragment--></body></html>';
+      const plain = (() => {
+        const box = document.createElement('div');
+        box.innerHTML = html;
+        return box.innerText.replace(/\n{3,}/g, '\n\n').trim();
+      })();
+      let wrote = false;
+      if (navigator.clipboard && window.ClipboardItem) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              'text/html': new Blob([htmlDoc], { type: 'text/html' }),
+              'text/plain': new Blob([plain], { type: 'text/plain' })
+            })
+          ]);
+          wrote = true;
+        } catch (error) {
+          console.warn(error);
+        }
+      }
+      if (!wrote) wrote = await copyHtmlViaSelection(html);
+      if (!wrote) throw new Error('no rich copy');
+      await copied();
+    } catch (err) {
+      console.error(err);
+      fail('复制失败，请允许剪贴板权限');
+    }
+    setTimeout(() => { btn.textContent = old; }, 1600);
+  });
+
+  $('exportCover').addEventListener('click', async () => {
+    const btn = $('exportCover');
+    const old = btn.textContent;
+    try {
+      await flushRender();
+      const jpeg = await bakeCoverImage(1920);
+      if (!jpeg) {
+        btn.textContent = '还没有封面图';
+        setTimeout(() => { btn.textContent = old; }, 1600);
+        return;
+      }
+      const img = await loadImg(jpeg);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('封面导出失败')), 'image/png');
+      });
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      btn.textContent = '封面图已复制';
+      $('exportHint').textContent = '封面图已复制。在微信正文最上方粘贴一次即可。';
+    } catch (error) {
+      console.error(error);
+      btn.textContent = '复制封面失败';
+    }
+    setTimeout(() => { btn.textContent = old; }, 1600);
+  });
+
+  const DRAFT_KEY = 'paradaily-wechat-editor-state-v1';
+  const DRAFT_DB_NAME = 'paradaily-wechat-editor';
+  const DRAFT_STORE = 'drafts';
+  let draftSaveTimer = null;
+  let draftRestoring = true;
+  let mediaDraftDirty = false;
+
+  function setDraftStatus(message, state) {
+    const status = $('draftStatus');
+    status.textContent = message;
+    status.classList.toggle('saved', state === 'saved');
+    status.classList.toggle('error', state === 'error');
+  }
+  function collectDraftState() {
+    return {
+      text: $('text').value,
+      articleTitle: $('articleTitle').value,
+      coverTitle: $('coverTitle').value,
+      coverSubtitle: $('coverSubtitle').value,
+      coverImageFocus,
+      ctaLogoStyle,
+      articleImageSettings: { ...articleImageSettings },
+      articleImageGroups: JSON.parse(JSON.stringify(articleImageGroups)),
+      articleImageGroupById: { ...articleImageGroupById },
+      articleImageGroupIndex,
+      articleImageIndex
+    };
+  }
+  function openDraftDb() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) { reject(new Error('当前浏览器不支持图片草稿存储')); return; }
+      const request = indexedDB.open(DRAFT_DB_NAME, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(DRAFT_STORE)) db.createObjectStore(DRAFT_STORE);
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('无法打开图片草稿存储'));
+    });
+  }
+  async function writeMediaDraft() {
+    const db = await openDraftDb();
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(DRAFT_STORE, 'readwrite');
+      transaction.objectStore(DRAFT_STORE).put({
+        coverDataUrl,
+        articleImages: { ...articleImages },
+        articleImageIndex
+      }, 'media');
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error('图片草稿保存失败'));
+    });
+    db.close();
+  }
+  async function readMediaDraft() {
+    const db = await openDraftDb();
+    const value = await new Promise((resolve, reject) => {
+      const request = db.transaction(DRAFT_STORE, 'readonly').objectStore(DRAFT_STORE).get('media');
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error || new Error('图片草稿读取失败'));
+    });
+    db.close();
+    return value;
+  }
+  async function clearMediaDraft() {
+    const db = await openDraftDb();
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(DRAFT_STORE, 'readwrite');
+      transaction.objectStore(DRAFT_STORE).delete('media');
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error('图片草稿清除失败'));
+    });
+    db.close();
+  }
+  async function saveDraft() {
+    if (draftRestoring) return;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraftState()));
+      if (mediaDraftDirty) {
+        mediaDraftDirty = false;
+        try { await writeMediaDraft(); }
+        catch (error) { mediaDraftDirty = true; throw error; }
+      }
+      setDraftStatus('已保存到本机', 'saved');
+    } catch (error) {
+      console.error(error);
+      setDraftStatus('保存失败：请删除大图或清空旧草稿', 'error');
+    }
+  }
+  function scheduleDraftSave(mediaChanged) {
+    if (draftRestoring) return;
+    if (mediaChanged) mediaDraftDirty = true;
+    clearTimeout(draftSaveTimer);
+    setDraftStatus('正在保存…');
+    draftSaveTimer = setTimeout(saveDraft, 450);
+  }
+  function restoreControlState(state) {
+    if (state.articleTitle != null) $('articleTitle').value = state.articleTitle;
+    if (state.text != null) $('text').value = state.text;
+    if (state.coverTitle != null) $('coverTitle').value = state.coverTitle;
+    if (state.coverSubtitle != null) $('coverSubtitle').value = state.coverSubtitle;
+    coverImageFocus = ['top', 'center', 'bottom'].includes(state.coverImageFocus) ? state.coverImageFocus : 'center';
+    document.querySelectorAll('#coverFocusSeg button').forEach(button => {
+      button.classList.toggle('active', button.dataset.v === coverImageFocus);
+    });
+    ctaLogoStyle = state.ctaLogoStyle === 'hand' ? 'hand' : 'mark';
+    document.querySelectorAll('#ctaLogoSeg button').forEach(button => {
+      button.classList.toggle('active', button.dataset.v === ctaLogoStyle);
+    });
+    Object.keys(articleImageSettings).forEach(key => delete articleImageSettings[key]);
+    Object.assign(articleImageSettings, state.articleImageSettings || {});
+    Object.keys(articleImageGroups).forEach(key => delete articleImageGroups[key]);
+    Object.assign(articleImageGroups, state.articleImageGroups || {});
+    Object.keys(articleImageGroupById).forEach(key => delete articleImageGroupById[key]);
+    Object.assign(articleImageGroupById, state.articleImageGroupById || {});
+    articleImageGroupIndex = Number(state.articleImageGroupIndex) || 0;
+    articleImageIndex = Number(state.articleImageIndex) || 0;
+  }
+  async function restoreDraft() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) restoreControlState(JSON.parse(raw));
+      const media = await readMediaDraft();
+      if (media) {
+        coverDataUrl = media.coverDataUrl || null;
+        Object.keys(articleImages).forEach(key => delete articleImages[key]);
+        Object.assign(articleImages, media.articleImages || {});
+        if (Number(media.articleImageIndex) > articleImageIndex) {
+          articleImageIndex = Number(media.articleImageIndex) || articleImageIndex;
+        }
+      }
+      setDraftStatus(raw || media ? '已恢复本地草稿' : '本地自动保存', raw || media ? 'saved' : '');
+    } catch (error) {
+      console.error(error);
+      setDraftStatus('草稿恢复失败', 'error');
+    } finally {
+      draftRestoring = false;
+    }
+  }
+  document.querySelector('.controls').addEventListener('input', () => scheduleDraftSave());
+  document.querySelector('.controls').addEventListener('change', () => scheduleDraftSave());
+  $('clearDraft').addEventListener('click', async () => {
+    if (!confirm('确定清空正文、封面和所有本地图片草稿吗？')) return;
+    clearTimeout(draftSaveTimer);
+    localStorage.removeItem(DRAFT_KEY);
+    try { await clearMediaDraft(); } catch (error) { console.error(error); }
+    location.reload();
+  });
+
+  (async () => {
+    await render();
+    await restoreDraft();
+    await render();
+    fitPreview();
+    setTimeout(fitPreview, 100);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => render());
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="160" viewBox="0 0 720 160">
+  <rect width="720" height="160" fill="none"/>
+  <text x="360" y="108"
+        text-anchor="middle"
+        font-family="Helvetica Neue, Arial, sans-serif"
+        font-size="92"
+        font-weight="700"
+        letter-spacing="6"
+        fill="#111111">YOUR LOGO</text>
+</svg>
