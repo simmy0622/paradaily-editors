@@ -1,8 +1,8 @@
 # 文章海报 / 公众号编辑器
 
-三个可离线打开的静态编辑器。仓库是私有的：被邀请的人可以下载全部，也可以只拿其中一个。
+三个可离线打开的静态编辑器，MIT 开源。可以下载全部，也可以只拿其中一个。
 
-仓库里已经去掉原品牌图、域名和样本文案。打开后会看到占位字标 `YOUR LOGO`，请先换成自己的标识。
+打开后会看到占位字标 `YOUR LOGO`，请先换成自己的标识。
 
 ## 三个文件分别做什么
 
@@ -16,12 +16,10 @@
 
 ## 怎么下载
 
-被邀请进这个私有仓库之后：
-
 **全部下载**
 
 ```bash
-git clone git@github.com:simmy0622/paradaily-editors.git
+git clone https://github.com/simmy0622/paradaily-editors.git
 ```
 
 或在 GitHub 页面点绿色 **Code → Download ZIP**。
@@ -89,20 +87,8 @@ python3 -m http.server 4173
 - http://localhost:4173/paradaily-editor-4x3.html
 - http://localhost:4173/paradaily-wechat-editor.html
 
-部署到任意静态托管（GitHub Pages 私有站、Nginx、对象存储）时，同样保持 HTML 与 `brand/` 的相对路径。
+部署到任意静态托管（GitHub Pages、Nginx、对象存储）时，同样保持 HTML 与 `brand/` 的相对路径。
 
-## 给别人下载权限
+## 许可
 
-仓库是 private，外人默认看不到。需要：
-
-1. GitHub 打开本仓库 → **Settings → Collaborators** → 邀请对方 GitHub 用户名
-2. 权限选 **Read** 即可 clone、下载 Releases、拷单个文件
-3. 对方接受邀请后就能按上面的方式下载
-
-命令行邀请：
-
-```bash
-gh api -X PUT repos/simmy0622/paradaily-editors/collaborators/对方用户名 -f permission=pull
-```
-
-Write 权限只有在你希望对方能回推改动时才给。
+MIT License。可以自由使用、修改和再分发。
